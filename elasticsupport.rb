@@ -31,6 +31,8 @@ private
       content = []
       section = nil
       f.each do |l|
+        l.chomp!
+        next if l.empty?
         if l =~ /#==\[ (.*) \]===/
           if section
             # old section present
@@ -39,8 +41,10 @@ private
             content = []
           end
           section = $1.downcase.tr(" ", "_")
-        else
+        elsif section
           content << l
+        else
+          # skip header
         end
       end
       self.send section, content if section
@@ -64,6 +68,17 @@ private
 end
 
 class BasicEnvironment < Supportconfig
+  def command content
+    puts "Command #{content.inspect}"
+    case content[0]
+    when /\/bin\/date/
+      puts "Date #{content[1]}"
+    when /\/bin\/uname/
+      puts "Uname #{content[1]}"
+    else
+      puts "??? #{content[0]}"
+    end
+  end
 end
 
 
