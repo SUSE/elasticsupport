@@ -25,8 +25,9 @@ module Elasticsupport
         @uname = content[1]
         unames = @uname.split(" ")
         @@data[:hostname] = unames[1]
-        @running_kernel = unames[2]
+        running_kernel = unames[2]
         @@data[:arch] = unames[12]
+        @client.index index: 'elasticsupport', type: 'running_kernel', id: "#{@@data[:hostname]}@#{@@data[:date]}", body: { kernel: running_kernel }
       when /\/bin\/rpm/ 
         # /bin/rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq
       else
