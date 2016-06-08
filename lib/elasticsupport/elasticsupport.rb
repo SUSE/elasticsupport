@@ -40,6 +40,7 @@ module Elasticsupport
         if $1 == "supportconfig"
           raise "Please remove 'supportconfig.txt from list of files to index"
         end
+        # convert filename to class name
         # foo.bar -> foo_bar
         # foo-bar -> FooBar
         klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")

@@ -18,16 +18,19 @@ module Elasticsupport
       case content[0]
       when /\/bin\/date/
         # Mon Apr 11 14:55:27 CDT 2016
-        @@data[:date] = content[1]
+        date = content[1]
+        _set :timestamp, date
       when /\/bin\/uname/
         # Linux usbsusemanager 3.0.101-0.47.71-default #1 SMP Thu Nov 12 12:22:22 UTC 2015 (b5b212e) x86_64 x86_64 x86_64 GNU/Linux
         # 0     1              2                       3  4   5   6   7  8        9   10   11        12     13     14     15
-        @uname = content[1]
-        unames = @uname.split(" ")
-        @@data[:hostname] = unames[1]
+        uname = content[1]
+        unames = uname.split(" ")
+        _set :hostname, unames[1]
+        # write uname after hostname is set
+        _write 'uname', { uname: uname }
         running_kernel = unames[2]
-        @@data[:arch] = unames[12]
-        @client.index index: 'elasticsupport', type: 'running_kernel', id: "#{@@data[:hostname]}@#{@@data[:date]}", body: { kernel: running_kernel }
+        _set :arch, unames[12]
+        write 'running_kernel', { kernel: running_kernel }
       when /\/bin\/rpm/ 
         # /bin/rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq
       else
@@ -36,8 +39,22 @@ module Elasticsupport
     end
 
     def configuration_file content
-      # skip
-    end
+      case content[0]
+      when /\/etc\/SuSE-release/
+        os = content[1]
+        if content[2] =~ /VERSION = (\d+)/
+          version = $1.to_i
+        else
+          version = "unknown"
+        end
+        if content[3] =~ /PATCHLEVEL = (\d+)/
+          patchlevel = $1.to_i
+        else
+          patchlevel = "unknown"
+        end
+        _write 'suse_release', { os: os, sle_version: "#{version}SP#{patchlevel}", version: version, patchlevel: patchlevel }
+      end
+      end
 
     def system content
       # skip
@@ -52,7 +69,6 @@ module Elasticsupport
     end
 
     def close
-      @client.index index: 'elasticsupport', type: 'environment', id: "#{@@data[:hostname]}@#{@@data[:date]}", body: { uname: @uname }
     end
   end
 

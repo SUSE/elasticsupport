@@ -31,6 +31,17 @@ require 'elasticsupport/logging'
 module Elasticsupport
   class Supportconfig < Supportconfig::Supportconfig
     @@data = {}
+    def _set id, value
+      @@data[id.to_sym] = value
+    end
+    def _get id
+      @@data[id.to_sym]
+    end
+    def _write type, body
+      body[:timestamp] ||= _get(:timestamp) # ensure timestamp field
+      body[:hostname] ||= _get(:hostname)
+      @client.index index: 'elasticsupport', type: type, body: body
+    end
   end
 end
 

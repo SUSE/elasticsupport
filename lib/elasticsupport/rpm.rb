@@ -13,18 +13,20 @@ module Elasticsupport
 
   class Rpm < Supportconfig
     def command content
-      unless content[0] =~ /NAME.*VERSION.*RELEASE/
+      content.shift # drop rpm command
+      unless content.shift =~ /NAME.*VERSION.*RELEASE/ # ensure header
         return
       end
+      
+      # parse
       # NAME                                DISTRIBUTION                        VERSION
       content.each do |l|
+        next if l[0,1] == "#"
         l =~ /([^\s]+)\s+(.*)\s+([^\s]+)/
-        name = $1
-        distribution = $2
-        version = $3
-#        puts "#{name}-#{version}\n\t\t#{l}"
-#        client.index index: 'elasticsupport', type: 'rpm', body: { name: name, version: version }
+        _write 'rpm', { name: $1, distribution: $2, version: $3 }
       end
+    end
+    def close
     end
   end
 
