@@ -14,6 +14,21 @@ module Elasticsupport
   # basic_environment.txt
 
   class BasicEnvironment < Supportconfig
+#    def _mappings
+#      { uname: {
+#          uname: { type: 'string', index: 'not_analyzed' }
+#        },
+#        running_kernel: {
+#          kernel: { type: 'string', analyzer: 'no_analyzer' }
+#        },
+#        suse_release: {
+#          os:          { type: 'string', analyzer: 'no_analyzer' },
+#          sle_version: { type: 'string', analyzer: 'no_analyzer' },
+#          version:     { type: 'numeric' },
+#          patchlevel:  { type: 'numeric' }
+#        }
+#      }
+#    end
     def command content
       case content[0]
       when /\/bin\/date/
@@ -30,7 +45,7 @@ module Elasticsupport
         _write 'uname', { uname: uname }
         running_kernel = unames[2]
         _set :arch, unames[12]
-        write 'running_kernel', { kernel: running_kernel }
+        _write 'running_kernel', { kernel: running_kernel }
       when /\/bin\/rpm/ 
         # /bin/rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq
       else

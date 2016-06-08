@@ -29,8 +29,22 @@ require 'elasticsupport/version'
 require 'elasticsupport/logging'
 
 module Elasticsupport
+  INDEX = 'elasticsupport'
   class Supportconfig < Supportconfig::Supportconfig
-    @@data = {}
+    def initialize client, dir, fname
+      @@data = {}
+      super client, dir, fname
+      if self.respond_to? :_mappings
+        puts "#{self} mappings !"
+        self._mappings.each do |type, mapping|
+          client.indices.put_mapping index: INDEX,
+            type: type.to_s,
+            body: {
+              type.to_sym => { properties: mapping }
+            }
+        end
+      end
+    end
     def _set id, value
       @@data[id.to_sym] = value
     end
@@ -40,7 +54,7 @@ module Elasticsupport
     def _write type, body
       body[:timestamp] ||= _get(:timestamp) # ensure timestamp field
       body[:hostname] ||= _get(:hostname)
-      @client.index index: 'elasticsupport', type: type, body: body
+      @client.index index: INDEX, type: type.to_s, body: body
     end
   end
 end

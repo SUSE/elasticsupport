@@ -20,9 +20,9 @@ def usage(msg=nil)
 end
 
 def parse_supportconfig_dir dir
-  puts "Supportconfig: #{dir}"
+#  puts "Supportconfig: #{dir}"
   elasticsupport = Elasticsupport::Elasticsupport.new dir
-  elasticsupport.index [ "basic-environment.txt", "rpm.txt", "hardware.txt" ]
+  elasticsupport.index [ "basic-environment.txt", "rpm.txt" ] # , "hardware.txt"
 end
 
 dir = ARGV.shift
@@ -37,7 +37,7 @@ if File.readable?(File.join(dir, "supportconfig.txt"))
 else
   # assume directory of unpacked supportconfigs
   Dir.open(dir).each do |d|
-    puts "Supportconfig? #{d}"
+#    puts "Supportconfig? #{d}"
     next if d[0,1] == "."
     target = File.join(dir, d)
     parse_supportconfig_dir(target) if File.directory?(target)

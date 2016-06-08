@@ -25,7 +25,7 @@ module Elasticsupport
     # @param [String] Directory of unpacked supportconfig data
     #
     def initialize dir
-      @client = Elasticsearch::Client.new log: true
+      @client = Elasticsearch::Client.new # log: true
       raise "#{dir.inspect} is not a directory" unless File.directory?(dir)
       @dir = dir
     end
@@ -37,6 +37,7 @@ module Elasticsupport
     def index files
       files.each do |entry|
         next unless entry =~ /^(.*)\.txt$/
+        puts "*** #{entry}"
         if $1 == "supportconfig"
           raise "Please remove 'supportconfig.txt from list of files to index"
         end
@@ -49,8 +50,8 @@ module Elasticsupport
           next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
           klass.new @client, @dir, entry
-        rescue NameError => e
-          STDERR.puts "#{e}\n\t#{entry} - not implemented"
+#        rescue NameError => e
+#          STDERR.puts "#{e}\n\t#{entry} - not implemented"
         rescue Faraday::ConnectionFailed
           STDERR.puts "Elasticsearch DB not running"
         end
