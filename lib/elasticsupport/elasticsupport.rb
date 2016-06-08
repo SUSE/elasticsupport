@@ -1,0 +1,58 @@
+#
+# Import a supportconfig into elasticsearch
+#
+# Index    (Database) Elasticsupport
+# Type     (Table)    rpm
+# Id
+# Document (Row)      package name
+# Field    (Column)   nevra
+
+module Elasticsupport
+
+  #
+  # class Elasticsupport
+  #
+  # scan suppportconfig directory, build class name from file name
+  # initialize class instance (does parsing)
+  #
+  class Elasticsupport
+    require 'elasticsearch'
+
+    # constructor
+    #
+    # opens DB connection
+    #
+    # @param [String] Directory of unpacked supportconfig data
+    #
+    def initialize dir
+      @client = Elasticsearch::Client.new log: true
+      raise "#{dir.inspect} is not a directory" unless File.directory?(dir)
+      @dir = dir
+    end
+
+    # index list of file
+    #
+    # @param [Array] list of files to import from
+    #
+    def index files
+      files.each do |entry|
+        next unless entry =~ /^(.*)\.txt$/
+        if $1 == "supportconfig"
+          raise "Please remove 'supportconfig.txt from list of files to index"
+        end
+        # foo.bar -> foo_bar
+        # foo-bar -> FooBar
+        klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
+        begin
+          klass = ::Supportconfig.const_get(klassname)
+          next unless klass.to_s =~ /Supportconfig/ # ensure Module 'Supportconfig'
+          # create instance (parses file, writes to DB)
+          klass.new @client, @dir, entry
+        rescue NameError => e
+          STDERR.puts "#{e}\n\t#{entry} - not implemented"
+        end  
+      end
+    end
+  end
+
+end # module Elastisupport

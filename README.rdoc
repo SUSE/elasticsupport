@@ -1,0 +1,31 @@
+= Elasticsupport
+
+* http://github.com/SUSE/elasticsupport
+
+== Introduction
+
+Command line tool to import SUSE supportconfig data into Elasticsearch.
+
+== Features
+
+* Parse supportconfig .txt files (via Supportconfig gem)
+* Store relevant data into elasticsearch
+* Easily extendable
+
+== Extending Supportconfig
+
+Derive your class from Supportconfig::Supportconfig.
+
+== Debugging
+
+Set DEBUG environment variable non-empty.
+
+== Authors
+
+* Klaus Kämpf <kkaempf@suse.de>
+
+== License
+
+Copyright (c) 2016 SUSE LINUX Products GmbH.
+
+Elasticsupport is licensed under the MIT license. See MIT-LICENSE for details.

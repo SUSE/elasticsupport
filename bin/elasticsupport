@@ -1,0 +1,24 @@
+#
+# Import a supportconfig into elasticsearch
+#
+# Index    (Database) Elasticsupport
+# Type     (Table)    rpm
+# Id
+# Document (Row)      package name
+# Field    (Column)   nevra
+
+require 'rubygems'
+require 'elasticsupport'
+
+def usage(msg=nil)
+  STDERR.puts "*** Err: #{msg}" if msg
+  STDERR.puts "Usage:"
+  STDERR.puts "elasticsupport <dir>"
+  STDERR.puts "\t<dir> => unpacked supportconfig tarball"
+  exit 1
+end
+
+dir = ARGV.shift
+
+elasticsupport = Elasticsupport::Elasticsupport.new dir
+elasticsupport.index [ "basic-environment.txt", "rpm.txt", "hardware.txt" ]
