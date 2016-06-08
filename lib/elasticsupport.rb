@@ -30,10 +30,10 @@ require 'elasticsupport/logging'
 
 module Elasticsupport
   class Supportconfig < Supportconfig::Supportconfig
+    @@data = {}
   end
 end
 
 require 'elasticsupport/elasticsupport'
 require 'elasticsupport/basic_environment'
 require 'elasticsupport/rpm'
-

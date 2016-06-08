@@ -7,7 +7,7 @@
 # Document (Row)      package name
 # Field    (Column)   nevra
 
-require 'elasticsupport'
+require 'supportconfig'
 
 module Elasticsupport
 
@@ -28,4 +28,4 @@ module Elasticsupport
     end
   end
 
-end # module Supportconfig
+end # module

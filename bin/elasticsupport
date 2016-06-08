@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 #
 # Import a supportconfig into elasticsearch
 #
@@ -18,7 +19,27 @@ def usage(msg=nil)
   exit 1
 end
 
+def parse_supportconfig_dir dir
+  puts "Supportconfig: #{dir}"
+  elasticsupport = Elasticsupport::Elasticsupport.new dir
+  elasticsupport.index [ "basic-environment.txt", "rpm.txt", "hardware.txt" ]
+end
+
 dir = ARGV.shift
 
-elasticsupport = Elasticsupport::Elasticsupport.new dir
-elasticsupport.index [ "basic-environment.txt", "rpm.txt", "hardware.txt" ]
+usage "<dir> parameter missing" unless dir
+
+usage "argument must be directory" unless File.directory?(dir)
+
+if File.readable?(File.join(dir, "supportconfig.txt"))
+  # assume unpackage supportconfig
+  parse_supportconfig_dir dir
+else
+  # assume directory of unpacked supportconfigs
+  Dir.open(dir).each do |d|
+    puts "Supportconfig? #{d}"
+    next if d[0,1] == "."
+    target = File.join(dir, d)
+    parse_supportconfig_dir(target) if File.directory?(target)
+  end
+end

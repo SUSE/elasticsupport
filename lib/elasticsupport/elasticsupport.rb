@@ -44,15 +44,17 @@ module Elasticsupport
         # foo-bar -> FooBar
         klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
         begin
-          klass = ::Supportconfig.const_get(klassname)
-          next unless klass.to_s =~ /Supportconfig/ # ensure Module 'Supportconfig'
+          klass = ::Elasticsupport.const_get(klassname)
+          next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
           klass.new @client, @dir, entry
         rescue NameError => e
           STDERR.puts "#{e}\n\t#{entry} - not implemented"
-        end  
+        rescue Faraday::ConnectionFailed
+          STDERR.puts "Elasticsearch DB not running"
+        end
       end
     end
   end
 
-end # module Elastisupport
+end # module Elasticsupport
