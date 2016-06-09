@@ -35,17 +35,16 @@ module Elasticsupport
       when /\/bin\/date/
         # Mon Apr 11 14:55:27 CDT 2016
         time = Time.parse(content[1])
-        _set :timestamp, time.to_i
+        self.timestamp = time.to_i
       when /\/bin\/uname/
         # Linux usbsusemanager 3.0.101-0.47.71-default #1 SMP Thu Nov 12 12:22:22 UTC 2015 (b5b212e) x86_64 x86_64 x86_64 GNU/Linux
         # 0     1              2                       3  4   5   6   7  8        9   10   11        12     13     14     15
         uname = content[1]
         unames = uname.split(" ")
-        _set :hostname, unames[1]
+        self.hostname = unames[1]
         # write uname after hostname is set
         _write 'uname', { uname: uname }
         running_kernel = unames[2]
-        _set :arch, unames[12]
         _write 'running_kernel', { kernel: running_kernel }
       when /\/bin\/rpm/ 
         # /bin/rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq

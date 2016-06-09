@@ -24,6 +24,9 @@ module Elasticsupport
   class Elasticsupport
     require 'elasticsearch'
 
+    attr_reader :client, :dir
+    attr_accessor :timestamp, :hostname
+
     # constructor
     #
     # opens DB connection
@@ -34,6 +37,9 @@ module Elasticsupport
       @client = Elasticsearch::Client.new # log: true
       raise "#{dir.inspect} is not a directory" unless File.directory?(dir)
       @dir = dir
+      @timestamp = nil
+      @hostname = nil
+      @done = []
     end
 
     # index list of file
@@ -41,8 +47,11 @@ module Elasticsupport
     # @param [Array] list of files to import from
     #
     def index files
+      files.unshift 'basic-environment.txt' # get timestamp and hostname first
       files.each do |entry|
         next unless entry =~ /^(.*)\.txt$/
+        next if @done.include? entry
+        @done << entry
         puts "*** #{entry}"
         if $1 == "supportconfig"
           raise "Please remove 'supportconfig.txt from list of files to index"
@@ -55,7 +64,7 @@ module Elasticsupport
           klass = ::Elasticsupport.const_get(klassname)
           next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
-          klass.new @client, @dir, entry
+          klass.new self, @dir, entry
 #        rescue NameError => e
 #          STDERR.puts "#{e}\n\t#{entry} - not implemented"
         rescue Faraday::ConnectionFailed

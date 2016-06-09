@@ -26,8 +26,9 @@
 module Elasticsupport
   INDEX = 'elasticsupport'
   class Supportconfig < Supportconfig::Supportconfig
-    def initialize client, dir, fname
-      @@data = {}
+    def initialize elasticsupport, dir, fname
+      # save caller instanc to set/access hostname, timestamp, etc.
+      @elasticsupport = elasticsupport
       if self.respond_to? :_mappings
         # insert ':properties' level
         # see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
@@ -40,7 +41,7 @@ module Elasticsupport
           properties.merge! mapping
 #          puts "#{self.class} mappings #{type} => #{properties.inspect}"
           begin
-            client.indices.create index: _index_for(type),
+            @elasticsupport.client.indices.create index: _index_for(type),
               body: {
                 mappings: {
                   type => { properties: properties }
@@ -48,29 +49,29 @@ module Elasticsupport
               }
           rescue Elasticsearch::Transport::Transport::Errors::BadRequest => arg
             raise unless arg.message =~ /index_already_exists_exception/
-            client.indices.put_mapping index: _index_for(type), type: type,
+            @elasticsupport.client.indices.put_mapping index: _index_for(type), type: type,
               body: {
                 type => { properties: properties }
               }
           end
         end
       end
-      super client, dir, fname
+      super dir, fname
     end
     def _index_for type
       "#{INDEX}-#{type}"
     end
-    def _set id, value
-      @@data[id.to_sym] = value
+    def hostname= hostname
+      @elasticsupport.hostname = hostname
     end
-    def _get id
-      @@data[id.to_sym]
+    def timestamp= timestamp
+      @elasticsupport.timestamp = timestamp
     end
     def _write type, body
-      body[:timestamp] ||= _get(:timestamp) # ensure timestamp field
-      body[:hostname] ||= _get(:hostname)
-      @client.index index: _index_for(type), type: type.to_s, body: body
-      puts body.inspect
+      body[:timestamp] = @elasticsupport.timestamp # ensure timestamp field
+      body[:hostname] = @elasticsupport.hostname
+      @elasticsupport.client.index index: _index_for(type), type: type.to_s, body: body
+#     puts body.inspect
     end
   end
 end
