@@ -42,4 +42,7 @@ else
     target = File.join(dir, d)
     parse_supportconfig_dir(target) if File.directory?(target)
   end
+# else
+# read from tar without unpacking
+# see http://stackoverflow.com/questions/30355389/read-from-a-tar-gz-file-without-saving-the-unpacked-version
 end
