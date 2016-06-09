@@ -12,19 +12,20 @@ require 'supportconfig'
 module Elasticsupport
 
   class Rpm < Supportconfig
-#    def _mappings
-#      { rpm: {
-#          rpmname: { type: 'string', analyzer: 'no_analyzer' },
-#          rpmversion: { type: 'string', analyzer: 'no_analyzer' }
-#        }
-#      }
-#    end
+    def _mappings
+      {
+        rpm: {
+          rpmname:         { type: 'string', index: 'not_analyzed' },
+          rpmdistribution: { type: 'string', index: 'not_analyzed' },
+          rpmversion:      { type: 'string', index: 'not_analyzed' }
+        }
+      }
+    end
 
     def command content
       unless content.shift =~ /\# rpm -qa --queryformat.*NAME.*VERSION.*RELEASE/ # ensure header
         return
       end
-      puts "rpm !"
       content.shift # drop rpm command
       
       # parse
