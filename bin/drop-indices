@@ -1,0 +1,7 @@
+#!/bin/sh
+curl -XDELETE 'http://localhost:9200/elasticsupport' 2> /dev/null
+curl -XDELETE 'http://localhost:9200/elasticsupport-uname' 2> /dev/null
+curl -XDELETE 'http://localhost:9200/elasticsupport-running_kernel' 2> /dev/null
+curl -XDELETE 'http://localhost:9200/elasticsupport-suse_release' 2> /dev/null
+curl -XDELETE 'http://localhost:9200/elasticsupport-rpm' 2> /dev/null
+
