@@ -32,18 +32,33 @@ module Elasticsupport
   INDEX = 'elasticsupport'
   class Supportconfig < Supportconfig::Supportconfig
     def initialize client, dir, fname
+#      STDERR.puts "#{self} Initialize #{dir}/#{fname}"
       @@data = {}
-      super client, dir, fname
       if self.respond_to? :_mappings
-        puts "#{self} mappings !"
+        mappings = {}
+        # insert ':properties' level
+        # see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
+        # add 'timestamp' and 'hostname'
         self._mappings.each do |type, mapping|
-          client.indices.put_mapping index: INDEX,
-            type: type.to_s,
+          properties = {
+            hostname: { type: 'string', index: 'not_analyzed' },
+            timestamp: { type: 'date' }
+          }
+          properties.merge! mapping
+#          puts "\n\t#{properties.inspect}\n"
+          mappings[type] = { properties: properties }
+        end
+#        puts "#{self.class} mappings #{mappings.inspect}"
+        begin
+          client.indices.create index: INDEX,
             body: {
-              type.to_sym => { properties: mapping }
+              mappings: mappings
             }
+          rescue Elasticsearch::Transport::Transport::Errors::BadRequest => arg
+            raise unless arg.message =~ /index_already_exists_exception/
         end
       end
+      super client, dir, fname
     end
     def _set id, value
       @@data[id.to_sym] = value

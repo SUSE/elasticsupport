@@ -1,11 +1,8 @@
 #
-# Import a supportconfig into elasticsearch
+# elasticsupport.rb
 #
-# Index    (Database) Elasticsupport
-# Type     (Table)    rpm
-# Id
-# Document (Row)      package name
-# Field    (Column)   nevra
+# Main entry point into 'elasticsupport' library
+#
 
 module Elasticsupport
 
