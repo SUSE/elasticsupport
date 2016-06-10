@@ -59,7 +59,7 @@ module Elasticsupport
       super dir, fname
     end
     def _index_for type
-      "#{INDEX}-#{type}"
+      "#{INDEX}"
     end
     def hostname= hostname
       @elasticsupport.hostname = hostname
