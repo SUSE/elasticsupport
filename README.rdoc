@@ -14,7 +14,15 @@ Command line tool to import SUSE supportconfig data into Elasticsearch.
 
 == Extending Supportconfig
 
-Derive your class from Supportconfig::Supportconfig.
+Derive your class from Elasticsupport::Supportconfig, implemented in
+`lib/elasticsupport/supportconfig.rb`
+
+== bzip2 support
+
+For reading bzip2 compressed tar files (`.tbz`), you need to install
+the `bzip2-ruby` gem. Use the one from
+[here](https://github.com/kkaempf/bzip2-ruby/tree/kkaempf), **NOT**
+the one from [rubygems](https://rubygems.org)
 
 == Debugging
 

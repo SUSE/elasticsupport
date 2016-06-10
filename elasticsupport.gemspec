@@ -12,6 +12,10 @@ Gem::Specification.new do |s|
   s.description = %q{Library to import SUSE supportconfig data into Elasticsearch}
 
   s.add_dependency("supportconfig", ["~> 0.0.1"])
+  
+  # take the one from https://github.com/kkaempf/bzip2-ruby/tree/kkaempf !!
+  s.add_dependency("bzip2-ruby", ["~> 0.2.7"])
+    # libbz2-devel
 
   s.rubyforge_project = "elasticsupport"
 
