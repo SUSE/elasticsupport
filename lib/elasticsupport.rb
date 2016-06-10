@@ -24,19 +24,25 @@ module Elasticsupport
   class Elasticsupport
     require 'elasticsearch'
 
-    attr_reader :client, :dir
+    attr_reader :client
     attr_accessor :timestamp, :hostname
 
     # constructor
     #
     # opens DB connection
     #
-    # @param [String] Directory of unpacked supportconfig data
+    # @param [Object] Directory of unpacked supportconfig data
+    #                 or [Enumerable] TarReader
     #
-    def initialize dir
+    def initialize handle
       @client = Elasticsearch::Client.new # log: true
-      raise "#{dir.inspect} is not a directory" unless File.directory?(dir)
-      @dir = dir
+      if handle.is_a? Enumerable
+        # assume TarReader
+      else
+        # assume directory name
+        raise "#{handle.inspect} is not a directory" unless File.directory?(handle)
+      end
+      @handle = handle
       @timestamp = nil
       @hostname = nil
       @done = []
@@ -64,7 +70,7 @@ module Elasticsupport
           klass = ::Elasticsupport.const_get(klassname)
           next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
-          klass.new self, @dir, entry
+          klass.new self, @handle, entry
 #        rescue NameError => e
 #          STDERR.puts "#{e}\n\t#{entry} - not implemented"
         rescue Faraday::ConnectionFailed

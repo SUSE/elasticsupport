@@ -9,6 +9,8 @@
 # Field    (Column)   nevra
 
 require 'rubygems'
+require 'rubygems/package' # TarReader
+require 'bzip2/bzip2'
 require 'elasticsupport'
 
 def usage(msg=nil)
@@ -19,30 +21,50 @@ def usage(msg=nil)
   exit 1
 end
 
-def parse_supportconfig_dir dir
-#  puts "Supportconfig: #{dir}"
-  elasticsupport = Elasticsupport::Elasticsupport.new dir
+#
+# parse_supportconfig from directory (unpacked) or TarReader (tbz stream)
+#
+
+def parse_supportconfig handle
+#  puts "Supportconfig: #{handle}"
+  elasticsupport = Elasticsupport::Elasticsupport.new handle
   elasticsupport.index [ "basic-environment.txt", "rpm.txt" ] # , "hardware.txt"
 end
 
-dir = ARGV.shift
-
-usage "<dir> parameter missing" unless dir
-
-usage "argument must be directory" unless File.directory?(dir)
-
-if File.readable?(File.join(dir, "supportconfig.txt"))
-  # assume unpackage supportconfig
-  parse_supportconfig_dir dir
-else
-  # assume directory of unpacked supportconfigs
-  Dir.open(dir).each do |d|
-#    puts "Supportconfig? #{d}"
-    next if d[0,1] == "."
-    target = File.join(dir, d)
-    parse_supportconfig_dir(target) if File.directory?(target)
+def parse_tarball file
+  # assume tarball
+  puts "Assume #{file} is a tarball"
+  begin
+    uncompressed = Gem::Package::TarReader.new(Zlib::GzipReader.open(file))
+  rescue Zlib::GzipFile::Error
+    uncompressed = Gem::Package::TarReader.new(Bzip2::Reader.open(file))
+  rescue
+    STDERR.puts "#{file} is not a tarball"
+    raise
   end
-# else
-# read from tar without unpacking
-# see http://stackoverflow.com/questions/30355389/read-from-a-tar-gz-file-without-saving-the-unpacked-version
+  parse_supportconfig uncompressed
 end
+
+def parse_argument arg
+  # try <dir>/supportconfig.txt
+  if File.readable?(File.join(arg, "supportconfig.txt"))
+    # assume unpackage supportconfig
+    parse_supportconfig arg
+  elsif File.directory?(arg)
+    # look inside dir
+    Dir.open(arg).each do |f|
+      next if f[0,1] == "."
+      parse_argument File.join(arg, f)
+    end
+  elsif File.readable?(arg)
+    parse_tarball(arg)
+  else
+    STDERR.puts "'#{arg}' is neither a directory nor a tarball"
+  end
+end
+
+arg = ARGV.shift
+
+usage "<arg> parameter missing" unless arg
+
+parse_argument arg
