@@ -1,11 +1,8 @@
 #
-# Import a 'basic-environment.txt' into elasticsearch
+# Import supportconfig's
+#   basic-environment.txt
+# into elasticsearch
 #
-# Index    (Database) Elasticsupport
-# Type     (Table)    rpm
-# Id
-# Document (Row)      package name
-# Field    (Column)   nevra
 
 require 'supportconfig'
 

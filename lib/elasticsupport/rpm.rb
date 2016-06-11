@@ -1,11 +1,7 @@
 #
-# Import a supportconfig into elasticsearch
-#
-# Index    (Database) Elasticsupport
-# Type     (Table)    rpm
-# Id
-# Document (Row)      package name
-# Field    (Column)   nevra
+# Import supportconfig's
+#   rpm.txt
+# into elasticsearch
 
 require 'supportconfig'
 
