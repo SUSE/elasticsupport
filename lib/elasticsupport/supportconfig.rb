@@ -60,7 +60,7 @@ module Elasticsupport
       # save caller instanc to set/access hostname, timestamp, etc.
       @elasticsupport = elasticsupport
       if self.respond_to? :_mappings
-        provide_mapping_to_elasticsearch self._mappings
+        provide_mappings_to_elasticsearch self._mappings
       end
       super dir, fname
     end
