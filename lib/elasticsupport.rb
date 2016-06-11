@@ -18,6 +18,7 @@ require 'elasticsupport/logging'
 require 'elasticsupport/supportconfig'
 require 'elasticsupport/basic_environment'
 require 'elasticsupport/rpm'
+require 'elasticsupport/hardware'
 
 module Elasticsupport
 
@@ -73,7 +74,12 @@ module Elasticsupport
         # foo-bar -> FooBar
         klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
         begin
-          klass = ::Elasticsupport.const_get(klassname)
+          begin
+            klass = ::Elasticsupport.const_get(klassname)
+          rescue NameError
+            STDERR.puts "Parser missing for #{entry}"
+            next
+          end
           next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
           klass.new self, @handle, entry

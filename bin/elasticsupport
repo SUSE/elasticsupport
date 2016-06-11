@@ -16,8 +16,11 @@ require 'elasticsupport'
 def usage(msg=nil)
   STDERR.puts "*** Err: #{msg}" if msg
   STDERR.puts "Usage:"
-  STDERR.puts "elasticsupport <dir>"
+  STDERR.puts "elasticsupport <dir>|<tarball> [<file> [<file> ...]]"
   STDERR.puts "\t<dir> => unpacked supportconfig tarball"
+  STDERR.puts "\t<tarball> => (compressed) supportconfig tarball"
+  STDERR.puts ""
+  STDERR.puts "\t<file> => file to parse from supportconfig"
   exit 1
 end
 
@@ -25,15 +28,20 @@ end
 # parse_supportconfig from directory (unpacked) or TarReader (tbz stream)
 #
 
-def parse_supportconfig handle
+def parse_supportconfig handle, files
+#  puts "parse_supportconfig #{files.inspect}"
+  default_files = [ "basic-environment.txt"]#, "rpm.txt" ] # , "hardware.txt"
+  if files.nil? || files.empty?
+    files = default_files
+  end
 #  puts "Supportconfig: #{handle}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle
-  elasticsupport.index [ "basic-environment.txt", "rpm.txt" ] # , "hardware.txt"
+  elasticsupport.index files
 end
 
-def parse_tarball file
+def parse_tarball file, files
   # assume tarball
-  puts "Assume #{file} is a tarball"
+#  puts "Assume #{file} is a tarball"
   begin
     uncompressed = Gem::Package::TarReader.new(Zlib::GzipReader.open(file))
   rescue Zlib::GzipFile::Error
@@ -42,22 +50,23 @@ def parse_tarball file
     STDERR.puts "#{file} is not a tarball"
     raise
   end
-  parse_supportconfig uncompressed
+  parse_supportconfig uncompressed, files
 end
 
-def parse_argument arg
+def parse_argument arg, files
+#  puts "parse_argument #{files.inspect}"
   # try <dir>/supportconfig.txt
   if File.readable?(File.join(arg, "supportconfig.txt"))
     # assume unpackage supportconfig
-    parse_supportconfig arg
+    parse_supportconfig arg, files
   elsif File.directory?(arg)
     # look inside dir
     Dir.open(arg).each do |f|
       next if f[0,1] == "."
-      parse_argument File.join(arg, f)
+      parse_argument File.join(arg, f), files
     end
   elsif File.readable?(arg)
-    parse_tarball(arg)
+    parse_tarball arg, files
   else
     STDERR.puts "'#{arg}' is neither a directory nor a tarball"
   end
@@ -67,4 +76,4 @@ arg = ARGV.shift
 
 usage "<arg> parameter missing" unless arg
 
-parse_argument arg
+parse_argument arg, ARGV
