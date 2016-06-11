@@ -30,7 +30,7 @@ end
 
 def parse_supportconfig handle, files
 #  puts "parse_supportconfig #{files.inspect}"
-  default_files = [ "basic-environment.txt"]#, "rpm.txt" ] # , "hardware.txt"
+  default_files = [ "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
   if files.nil? || files.empty?
     files = default_files
   end
