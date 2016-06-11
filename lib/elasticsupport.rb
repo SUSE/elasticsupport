@@ -65,7 +65,7 @@ module Elasticsupport
         next unless entry =~ /^(.*)\.txt$/
         next if @done.include? entry
         @done << entry
-        puts "*** #{entry}"
+        puts "*** #{entry} <#{@handle.inspect}>"
         if $1 == "supportconfig"
           raise "Please remove 'supportconfig.txt from list of files to index"
         end
