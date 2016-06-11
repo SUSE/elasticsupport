@@ -86,8 +86,6 @@ module Elasticsupport
       # skip
     end
 
-    def close
-    end
   end
 
 end # module

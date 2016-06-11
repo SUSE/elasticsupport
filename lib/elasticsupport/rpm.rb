@@ -39,8 +39,6 @@ module Elasticsupport
         _write :rpm, { rpmname: $1, rpmdistribution: $2, rpmversion: $3 }
       end
     end
-    def close
-    end
   end
 
 end # module
