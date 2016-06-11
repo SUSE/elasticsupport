@@ -1,7 +1,13 @@
+#encoding: utf-8
 #
 # Import supportconfig's
 #   basic-environment.txt
 # into elasticsearch
+#
+# Copyright (c) 2016 SUSE LINUX GmbH
+# Written by Klaus Kämpf <kkaempf@suse.de>
+#
+# See MIT-LICENSE at toplevel for license information
 #
 
 require 'supportconfig'

@@ -1,7 +1,13 @@
+#encoding: utf-8
 #
 # elasticsupport.rb
 #
 # Main entry point into 'elasticsupport' library
+#
+# Copyright (c) 2016 SUSE LINUX GmbH
+# Written by Klaus Kämpf <kkaempf@suse.de>
+#
+# See MIT-LICENSE at toplevel for license information
 #
 
 require 'rubygems'
