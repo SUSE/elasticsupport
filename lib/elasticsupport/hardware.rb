@@ -34,6 +34,7 @@ module Elasticsupport
           stepping:              { type: 'string', index: 'not_analyzed' },
           cpu_mhz:               { type: 'string', index: 'not_analyzed' },
           cpu_max_mhz:           { type: 'string', index: 'not_analyzed' },
+          cpu_min_mhz:           { type: 'string', index: 'not_analyzed' },
           bogomips:              { type: 'string', index: 'not_analyzed' },
           hypervisor_vendor:     { type: 'string', index: 'not_analyzed' },
           virtualization:        { type: 'string', index: 'not_analyzed' },
