@@ -28,28 +28,35 @@ module Elasticsupport
           sockets:               { type: 'integer' },
           numa_nodes:            { type: 'integer' },
           vendor_id:             { type: 'string', index: 'not_analyzed' },
-          cpu_family:            { type: 'string', index: 'not_analyzed' },
-          model:                 { type: 'string', index: 'not_analyzed' },
+          cpu_family:            { type: 'integer' },
+          model:                 { type: 'integer' },
           model_name:            { type: 'string', index: 'not_analyzed' },
-          stepping:              { type: 'string', index: 'not_analyzed' },
-          cpu_mhz:               { type: 'string', index: 'not_analyzed' },
-          cpu_max_mhz:           { type: 'string', index: 'not_analyzed' },
-          cpu_min_mhz:           { type: 'string', index: 'not_analyzed' },
-          bogomips:              { type: 'string', index: 'not_analyzed' },
+          stepping:              { type: 'integer' },
+          cpu_mhz:               { type: 'float' },
+          cpu_max_mhz:           { type: 'float' },
+          cpu_min_mhz:           { type: 'float' },
+          cpu_sockets:           { type: 'integer' },
+          bogomips:              { type: 'float' },
           hypervisor_vendor:     { type: 'string', index: 'not_analyzed' },
           virtualization:        { type: 'string', index: 'not_analyzed' },
           virtualization_type:   { type: 'string', index: 'not_analyzed' },
-          l1d_cache:             { type: 'string', index: 'not_analyzed' },
-          l1i_cache:             { type: 'string', index: 'not_analyzed' },
-          l2_cache:              { type: 'string', index: 'not_analyzed' },
-          l3_cache:              { type: 'string', index: 'not_analyzed' },
-          numa_node0_cpus:       { type: 'string', index: 'not_analyzed' },
-          numa_node1_cpus:       { type: 'string', index: 'not_analyzed' }
+          l1d_cache_k:           { type: 'integer' },
+          l1i_cache_k:           { type: 'integer' },
+          l2_cache_k:            { type: 'integer' },
+          l3_cache_k:            { type: 'integer' },
+          flags:                 { type: 'string', index: 'not_analyzed' },
+          # s390x
+          sockets_per_book:      { type: 'integer' },
+          books:                 { type: 'integer' },
+          hypervisor:            { type: 'string', index: 'not_analyzed' },
+          dispatching_mode:      { type: 'string', index: 'not_analyzed' }
         }
       }
     end
 
     def command content
+      # these values are in 'k' (1024)
+      k_values = [ 'l1d_cache', 'l1i_cache', 'l2_cache', 'l3_cache' ]
       case content.shift
       when /\/usr\/bin\/lscpu/
         body = Hash.new
@@ -58,7 +65,31 @@ module Elasticsupport
             STDERR.puts "lscpu? #{l.inspect}"
             next
           end
-          body[$1.tr(" -","_").tr("()","").downcase] = $2
+          key = $1.tr(" -","_").tr("()","").downcase
+          value = $2
+          if k_values.include? key
+            key << "_k"
+            if value =~ /(\d+)([KkMm])/
+              value = $1.to_i
+              case $2
+              when 'M' then value = value * 1024
+              when 'm' then value = value * 1000
+              end
+            else
+              raise "Not a 'K' value: #{l}"
+            end
+          else
+            m = _mappings[:lscpu][key.to_sym]
+            if m.nil?
+              next if key =~ /numa_node\d+_cpus/ # skip numa_nodeXX_cpus
+              STDERR.puts "Unknown lscpu key #{key.inspect}"
+            elsif m[:type] == 'integer'
+              value = value.to_i
+            elsif m[:type] == 'float'
+              value = value.to_f
+            end
+          end
+          body[key] = value
         end
 #        puts body.inspect
         _write 'lscpu', body
