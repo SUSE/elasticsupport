@@ -37,6 +37,7 @@ def parse_supportconfig handle, files
 #  puts "Supportconfig: #{handle}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle
   elasticsupport.index files
+  elasticsupport.spacewalk
 end
 
 def parse_tarball file, files
