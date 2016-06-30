@@ -1,3 +1,7 @@
 #!/bin/sh
 curl -XDELETE 'http://localhost:9200/elasticsupport' > /dev/null
-
+for i in `curl 'http://localhost:9200/_cat/indices' | cut -d " " -f 3 | grep logs`
+do
+#  echo http://localhost:9200/$i
+  curl -XDELETE http://localhost:9200/$i
+done
