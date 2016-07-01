@@ -19,11 +19,9 @@ require 'elasticsupport/supportconfig'
 require 'elasticsupport/basic_environment'
 require 'elasticsupport/rpm'
 require 'elasticsupport/hardware'
+require 'elasticsupport/logstash'
 
 module Elasticsupport
-  # logstash
-  PORT = 9000
-  HOST = 'localhost'
 
   #
   # class Elasticsupport
@@ -37,40 +35,6 @@ module Elasticsupport
     attr_reader :client
     attr_accessor :timestamp, :hostname
 
-    private
-
-    # pipe log from <directory>/<path> to logstash running with <config>
-    def logpipe directory, path, config
-      logfile = File.join( directory, path )
-      unless File.readable?(logfile)
-        STDERR.puts "*** No such file: #{logfile}"
-        return
-      end
-
-      Dir.chdir File.join(@cwd, "..", "logstash")
-      system ("cp #{config} config/filter.conf")
-      sleep 5
-      puts "Grokfilter #{Dir.pwd}/#{config}"
-
-      begin
-        socket = TCPSocket.open(HOST, PORT)
-      rescue Errno::ECONNREFUSED
-        STDERR.puts "*** Can't logstash #{logfile}:"
-        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
-        exit 1
-      end
-
-      File.open(logfile) do |f|
-        f.each do |l|
-          socket.write l
-        end
-      end
-      Dir.chdir @cwd
-
-      socket.close
-    end
-
-    public
     # constructor
     #
     # opens DB connection
@@ -90,7 +54,6 @@ module Elasticsupport
       @timestamp = nil
       @hostname = nil
       @done = []
-      @cwd = File.dirname(__FILE__)
     end
 
     # index list of file
@@ -139,12 +102,7 @@ module Elasticsupport
       end
       debugdir = File.join(@handle, 'spacewalk-debug')
       return unless File.directory?(debugdir)
-      # grok filter configs
-      { 'httpd-logs/apache2/access_log' => 'access_log.conf',
-        'httpd-logs/apache2/error_log' => 'error_log.conf',
-      }.each do |file,config|
-        logpipe debugdir, file, config
-      end
+      Logstash.spacewalk debugdir
     end
   end # class
 
