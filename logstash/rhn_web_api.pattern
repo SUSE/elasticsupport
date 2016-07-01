@@ -1,0 +1,8 @@
+CLIENT (REQUESTED FROM): %{IP:client}
+API [\w\.]+
+CALL (CALL): %{API:api}\([^\)]*\)
+CALLER (CALLER): \([^\)]*\)
+DURATION (TIME): %{BASE10NUM:duration} (seconds)
+
+XMLRPCFAULT (redstone\.xmlrpc\.XmlRpcFault)
+TRACEBACK (\tat )
