@@ -67,14 +67,17 @@ module Elasticsupport
     def _index_for type
       "#{INDEX}"
     end
+    
+    # called from BasicSupport
     def hostname= hostname
       @elasticsupport.hostname = hostname
     end
     def timestamp= timestamp
       @elasticsupport.timestamp = timestamp
     end
+
     def _write type, body
-      body[:timestamp] = @elasticsupport.timestamp # ensure timestamp field
+      body[:timestamp] = @elasticsupport.timestamp.to_i * 1000 # ensure timestamp field as msec since epoch
       body[:hostname] = @elasticsupport.hostname
       @elasticsupport.client.index index: _index_for(type), type: type.to_s, body: body
 #     puts body.inspect

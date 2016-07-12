@@ -36,7 +36,7 @@ def parse_supportconfig handle, files
   end
 #  puts "Supportconfig: #{handle}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle
-  elasticsupport.index files
+#  elasticsupport.index files
   elasticsupport.spacewalk
 end
 
@@ -57,14 +57,17 @@ end
 def parse_argument arg, files
 #  puts "parse_argument #{files.inspect}"
   # try <dir>/supportconfig.txt
-  if File.readable?(File.join(arg, "supportconfig.txt"))
-    # assume unpackage supportconfig
-    parse_supportconfig arg, files
-  elsif File.directory?(arg)
-    # look inside dir
-    Dir.open(arg).each do |f|
-      next if f[0,1] == "."
-      parse_argument File.join(arg, f), files
+  if File.directory?(arg)
+    dir = File.expand_path(arg)
+    if File.readable?(File.join(dir, "supportconfig.txt"))
+      # assume unpackage supportconfig
+      parse_supportconfig dir, files
+    else
+      # look inside dir
+      Dir.open(dir).each do |f|
+        next if f[0,1] == "."
+        parse_argument File.join(dir, f), files
+      end
     end
   elsif File.readable?(arg)
     parse_tarball arg, files

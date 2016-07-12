@@ -60,7 +60,7 @@ module Elasticsupport
     #
     # @param [Array] list of files to import from
     #
-    def index files
+    def index files = []
       files.unshift 'basic-environment.txt' # get timestamp and hostname first
       files.each do |entry|
         next unless entry =~ /^(.*)\.txt$/
@@ -90,6 +90,9 @@ module Elasticsupport
           STDERR.puts "Elasticsearch DB not running"
         end
       end
+      unless @hostname
+        raise "Couldn't determine hostname !"
+      end
     end # def index
 
     # check for spacewalk-debug
@@ -97,12 +100,12 @@ module Elasticsupport
     # only works for unpacked directories
     #
     def spacewalk
-      unless File.directory?(@handle)
-        return
+      unless @hostname
+        STDERR.puts "No hostname, running index"
+        index # parse basic-environment.txt
       end
-      debugdir = File.join(@handle, 'spacewalk-debug')
-      return unless File.directory?(debugdir)
-      Logstash.spacewalk debugdir
+      @logstash = Logstash.new @hostname, @timestamp
+      @logstash.spacewalk @handle
     end
   end # class
 

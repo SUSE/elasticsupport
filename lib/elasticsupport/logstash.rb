@@ -26,8 +26,36 @@ module Elasticsupport
 
   class Logstash
     
-    def self.spacewalk debugdir
-      GROKS.each do |file,config|
+    def initialize hostname, timestamp
+      indexname = sprintf("logstash-%s_%02d%02d%02d_%02d%02d", hostname, timestamp.year % 100, timestamp.mon, timestamp.day, timestamp.hour, timestamp.min)
+      @dirname = File.dirname(__FILE__)
+      @logstashdir = File.expand_path(File.join(@dirname, "..", "..", "logstash"))
+      @configdir = File.join(@logstashdir, "config")
+      File.open(File.join(@configdir, "output.conf"), "w") do |f|
+        f.write <<OUTPUT
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]
+    index => #{indexname.inspect}
+  }
+}
+OUTPUT
+      end
+    end
+
+    def spacewalk handle
+      unless File.directory?(handle)
+        STDERR.puts "Logstash: Not a directory - #{handle.inspect}"
+        return
+      end
+      debugdir = File.join(handle, 'spacewalk-debug')
+      unless File.directory?(debugdir)
+        STDERR.puts "spacewalk-debug isn't unpacked in #{handle.inspect}"
+        Dir.chdir(handle) do
+          system("tar xf spacewalk-debug.tar.bz2")
+        end
+      end
+      GROKS.each do |file, config|
         logpipe debugdir, file, config
       end
     end
@@ -35,35 +63,34 @@ module Elasticsupport
     private
 
     # pipe log from <directory>/<path> to logstash running with <config>
-    def self.logpipe directory, path, config
-      cwd = File.dirname(__FILE__)
+    def logpipe directory, path, config
       logfile = File.join( directory, path )
       unless File.readable?(logfile)
         STDERR.puts "*** No such file: #{logfile}"
         return
       end
 
-      Dir.chdir File.join(cwd, "..", "..", "logstash")
-      system ("cp #{config} config/filter.conf")
-      sleep 5 # logstash needs ~3 secs to detect the config change
-      puts "Grokfilter #{Dir.pwd}/#{config}"
+      Dir.chdir(@logstashdir) do
+        system ("cp #{config} config/filter.conf")
+        sleep 5 # logstash needs ~3 secs to detect the config change
+        puts "Grokfilter #{Dir.pwd}/#{config}"
 
-      begin
-        socket = TCPSocket.open(HOST, PORT)
-      rescue Errno::ECONNREFUSED
-        STDERR.puts "*** Can't logstash #{logfile}:"
-        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
-        exit 1
-      end
-
-      File.open(logfile) do |f|
-        f.each do |l|
-          socket.write l
+        begin
+          socket = TCPSocket.open(HOST, PORT)
+        rescue Errno::ECONNREFUSED
+          STDERR.puts "*** Can't logstash #{logfile}:"
+          STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
+          exit 1
         end
+STDERR.puts "Piping #{logfile} to logstash"
+        File.open(logfile) do |f|
+          f.each do |l|
+            socket.write l
+          end
+        end
+        socket.close
       end
-      Dir.chdir cwd
 
-      socket.close
     end
 
   end # class
