@@ -20,8 +20,9 @@ module Elasticsupport
   
   LOGS = [
     'httpd-logs/apache2/access_log',
-#    'httpd-logs/apache2/error_log',
-#    'rhn-logs/rhn/rhn_web_api.log'
+    'httpd-logs/apache2/error_log',
+    'rhn-logs/rhn/rhn_web_api.log',
+    'rhn-logs/rhn/osa-dispatcher.log'
   ]
 
   class Logstash
