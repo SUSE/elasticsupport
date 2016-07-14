@@ -18,29 +18,20 @@ module Elasticsupport
   PORT = 9000
   HOST = 'localhost'
   
-  GROKS = {      # grok filter configs
-#    'httpd-logs/apache2/access_log' => 'access_log.conf',
-#    'httpd-logs/apache2/error_log' => 'error_log.conf',
-    'rhn-logs/rhn/rhn_web_api.log' => 'rhn_web_api.conf'
-  }
+  LOGS = [
+    'httpd-logs/apache2/access_log',
+#    'httpd-logs/apache2/error_log',
+#    'rhn-logs/rhn/rhn_web_api.log'
+  ]
 
   class Logstash
     
     def initialize hostname, timestamp
-      indexname = sprintf("logstash-%s_%02d%02d%02d_%02d%02d", hostname, timestamp.year % 100, timestamp.mon, timestamp.day, timestamp.hour, timestamp.min)
+      @hostname = hostname
+      @timestamp = timestamp
       @dirname = File.dirname(__FILE__)
       @logstashdir = File.expand_path(File.join(@dirname, "..", "..", "logstash"))
       @configdir = File.join(@logstashdir, "config")
-      File.open(File.join(@configdir, "output.conf"), "w") do |f|
-        f.write <<OUTPUT
-output {
-  elasticsearch {
-    hosts => ["localhost:9200"]
-    index => #{indexname.inspect}
-  }
-}
-OUTPUT
-      end
     end
 
     def spacewalk handle
@@ -55,42 +46,50 @@ OUTPUT
           system("tar xf spacewalk-debug.tar.bz2")
         end
       end
-      GROKS.each do |file, config|
-        logpipe debugdir, file, config
+      LOGS.each do |file|
+        logpipe debugdir, file
       end
     end
 
     private
 
-    # pipe log from <directory>/<path> to logstash running with <config>
-    def logpipe directory, path, config
+    # pipe log from <directory>/<path> to logstash
+    def logpipe directory, path
       logfile = File.join( directory, path )
       unless File.readable?(logfile)
         STDERR.puts "*** No such file: #{logfile}"
         return
       end
-
-      Dir.chdir(@logstashdir) do
-        system ("cp #{config} config/filter.conf")
-        sleep 5 # logstash needs ~3 secs to detect the config change
-        puts "Grokfilter #{Dir.pwd}/#{config}"
-
-        begin
-          socket = TCPSocket.open(HOST, PORT)
-        rescue Errno::ECONNREFUSED
-          STDERR.puts "*** Can't logstash #{logfile}:"
-          STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
-          exit 1
-        end
-STDERR.puts "Piping #{logfile} to logstash"
-        File.open(logfile) do |f|
-          f.each do |l|
-            socket.write l
-          end
-        end
-        socket.close
+      
+      # create logstash configs
+      indexname = sprintf("%s_%02d%02d%02d_%02d%02d", @hostname, @timestamp.year % 100, @timestamp.mon, @timestamp.day, @timestamp.hour, @timestamp.min)
+      File.open(File.join(@configdir, "output.conf"), "w") do |f|
+        f.write <<OUTPUT
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]
+    index => #{indexname.inspect}
+  }
+}
+OUTPUT
       end
 
+      begin
+        socket = TCPSocket.open(HOST, PORT)
+      rescue Errno::ECONNREFUSED
+        STDERR.puts "*** Can't logstash #{logfile}:"
+        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
+        exit 1
+      end
+#      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) #Nagle
+      STDERR.puts "Piping #{logfile} to logstash"
+      File.open(logfile) do |f|
+        f.each do |l|
+          socket.puts l
+          socket.flush
+        end
+      end
+      socket.close
     end
 
   end # class
