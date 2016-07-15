@@ -32,7 +32,6 @@ module Elasticsupport
       @timestamp = timestamp
       @dirname = File.dirname(__FILE__)
       @logstashdir = File.expand_path(File.join(@dirname, "..", "..", "logstash"))
-      @configdir = File.join(@logstashdir, "config")
     end
 
     def spacewalk handle
@@ -64,7 +63,7 @@ module Elasticsupport
       
       # create logstash configs
       indexname = sprintf("%s_%02d%02d%02d_%02d%02d", @hostname, @timestamp.year % 100, @timestamp.mon, @timestamp.day, @timestamp.hour, @timestamp.min)
-      File.open(File.join(@configdir, "output.conf"), "w") do |f|
+      File.open(File.join(@logstashdir, "output.conf"), "w") do |f|
         f.write <<OUTPUT
 output {
   elasticsearch {
