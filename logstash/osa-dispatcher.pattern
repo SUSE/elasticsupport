@@ -1,0 +1,7 @@
+# osa-dispatcher
+# 2015/06/12 11:39:04 +02:00 14117 0.0.0.0: osad/jabber_lib.main('ERROR', 'Error caught:')
+
+TIMESTAMP \d\d\d\d\/\d\d\/\d\d\s\d\d:\d\d:\d\d\s[+-]\d\d:\d\d
+PID [\d]+
+FUNCTION [\w_\.]+
+ARGS \([^\)]+\)
