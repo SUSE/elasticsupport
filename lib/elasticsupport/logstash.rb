@@ -71,6 +71,7 @@ output {
     hosts => ["localhost:9200"]
     index => #{indexname.inspect}
   }
+# stdout { codec => rubydebug }
 }
 OUTPUT
       end
