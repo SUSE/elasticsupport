@@ -19,14 +19,14 @@ module Elasticsupport
   HOST = 'localhost'
   
   LOGS = [
-    'httpd-logs/apache2/access_log',
-    'httpd-logs/apache2/error_log',
-    'rhn-logs/rhn/rhn_web_api.log',
+#    'httpd-logs/apache2/access_log',
+#    'httpd-logs/apache2/error_log',
+#    'rhn-logs/rhn/rhn_web_api.log',
     'rhn-logs/rhn/osa-dispatcher.log'
   ]
 
   class Logstash
-    
+
     def initialize hostname, timestamp
       @hostname = hostname
       @timestamp = timestamp
@@ -46,21 +46,26 @@ module Elasticsupport
           system("tar xf spacewalk-debug.tar.bz2")
         end
       end
-      LOGS.each do |file|
-        logpipe debugdir, file
+      create_output
+      begin
+        socket = TCPSocket.open(HOST, PORT)
+        LOGS.each do |file|
+          logpipe debugdir, file, socket
+        end
+        socket.close
+      rescue Errno::ECONNREFUSED
+        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
+        exit 1
       end
     end
 
     private
 
-    # pipe log from <directory>/<path> to logstash
-    def logpipe directory, path
-      logfile = File.join( directory, path )
-      unless File.readable?(logfile)
-        STDERR.puts "*** No such file: #{logfile}"
-        return
-      end
-      
+    #
+    # create_output
+    # creates output.conf, pointing to correct index
+    #
+    def create_output
       # create logstash configs
       indexname = sprintf("%s_%02d%02d%02d_%02d%02d", @hostname, @timestamp.year % 100, @timestamp.mon, @timestamp.day, @timestamp.hour, @timestamp.min)
       File.open(File.join(@logstashdir, "output.conf"), "w") do |f|
@@ -71,27 +76,66 @@ output {
     hosts => ["localhost:9200"]
     index => #{indexname.inspect}
   }
-# stdout { codec => rubydebug }
+  if ("_grokparsefailure" in [tags]) {
+    stdout { codec => rubydebug }
+  }
 }
 OUTPUT
       end
+    end
 
-      begin
-        socket = TCPSocket.open(HOST, PORT)
-      rescue Errno::ECONNREFUSED
-        STDERR.puts "*** Can't logstash #{logfile}:"
-        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
-        exit 1
+    #
+    # logpipe
+    # pipe log from <directory>/<path> to socket
+    #
+    def logpipe directory, path, socket
+      # move directory parts from path to directory
+      local_dir = File.dirname(path)
+      filepattern = Regexp.new(File.basename(path))
+      directory = File.join(directory, local_dir)
+#      STDERR.puts "logpipe #{directory} #{filepattern}"
+
+      files = []
+      Dir.open(directory).each do |entry|
+#        STDERR.puts "logpipe #{entry} =~ #{filepattern}"
+        next unless entry =~ filepattern
+        files << entry
       end
+      STDERR.puts "-- sorting --"
+      files.sort!
+      # put first (current) file last
+      current = files.shift
+      files.push current
+      
+      Dir.chdir(directory) do
+        files.each do |entry|
+          unless File.readable?(entry)
+            STDERR.puts "*** Not readable: #{entry}"
+            next
+          end
+          case entry
+          when /\.gz$/
+            system "gunzip #{entry}"
+            entry = File.basename(entry, ".gz")
+          when /\.bz2$/
+            system "bunzip2 #{entry}"
+            entry = File.basename(entry, ".bz2")
+          when /\.xz$/
+            system "unxz #{entry}"
+            entry = File.basename(entry, ".xz")
+          end
+          STDERR.puts "#{entry}"
+        
 #      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) #Nagle
-      STDERR.puts "Piping #{logfile} to logstash"
-      File.open(logfile) do |f|
-        f.each do |l|
-          socket.puts l
-          socket.flush
+          STDERR.puts "Piping #{entry} to logstash"
+          File.open(entry) do |f|
+            f.each do |l|
+              socket.puts l
+            end
+            socket.flush
+          end
         end
-      end
-      socket.close
+      end # chdir
     end
 
   end # class
