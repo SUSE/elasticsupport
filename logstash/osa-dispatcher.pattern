@@ -3,5 +3,6 @@
 
 TIMESTAMP \d\d\d\d\/\d\d\/\d\d\s\d\d:\d\d:\d\d\s[+-]\d\d:\d\d
 PID [\d]+
+MODULE \w+
 FUNCTION [\w_\.]+
-ARGS \([^\)]+\)
+ARGS \(.*\)
