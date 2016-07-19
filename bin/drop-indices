@@ -1,7 +1,8 @@
 #!/bin/sh
-curl -XDELETE 'http://localhost:9200/elasticsupport' > /dev/null
-for i in `curl 'http://localhost:9200/_cat/indices' | cut -d " " -f 3 | grep logs`
+curl -XDELETE 'http://localhost:9200/elasticsupport' 2> /dev/null
+for i in `curl 'http://localhost:9200/_cat/indices' 2> /dev/null | cut -d " " -f 3`
 do
 #  echo http://localhost:9200/$i
-  curl -XDELETE http://localhost:9200/$i
+  echo Drop $i
+  curl -XDELETE http://localhost:9200/$i 2> /dev/null
 done
