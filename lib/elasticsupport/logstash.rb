@@ -15,14 +15,15 @@ require 'logger'
 
 module Elasticsupport
   # logstash
-  PORT = 9000
   HOST = 'localhost'
   
   LOGS = [
-#    'httpd-logs/apache2/access_log',
-#    'httpd-logs/apache2/error_log',
-#    'rhn-logs/rhn/rhn_web_api.log',
-    'rhn-logs/rhn/osa-dispatcher.log'
+     # logfile, logstash-tcp-port
+#    [ 'httpd-logs/apache2/access_log', 9000 ],
+#    [ 'httpd-logs/apache2/error_log', 9001 ],
+#    [ 'rhn-logs/rhn/rhn_web_api.log', 9002 ],
+    [ 'rhn-logs/rhn/osa-dispatcher.log', 9003 ],
+    [ 'rhn-logs/rhn/rhn_server_sat.log', 9004 ]
   ]
 
   class Logstash
@@ -47,15 +48,15 @@ module Elasticsupport
         end
       end
       create_output
-      begin
-        socket = TCPSocket.open(HOST, PORT)
-        LOGS.each do |file|
+      LOGS.each do |file, port|
+        begin
+          socket = TCPSocket.open(HOST, port)
           logpipe debugdir, file, socket
+          socket.close
+        rescue Errno::ECONNREFUSED
+          STDERR.puts "*** Logstash is not listening on #{HOST}:#{port}"
+          exit 1
         end
-        socket.close
-      rescue Errno::ECONNREFUSED
-        STDERR.puts "*** Logstash is not listening on #{HOST}:#{PORT}"
-        exit 1
       end
     end
 
@@ -89,6 +90,8 @@ OUTPUT
     # pipe log from <directory>/<path> to socket
     #
     def logpipe directory, path, socket
+      # save for later retry if connection is reset (logstash restart)
+      address_family, port, hostname, numeric_address = socket.peeraddr(:numeric)
       # move directory parts from path to directory
       local_dir = File.dirname(path)
       filepattern = Regexp.new(File.basename(path))
@@ -130,7 +133,18 @@ OUTPUT
           STDERR.puts "Piping #{entry} to logstash"
           File.open(entry) do |f|
             f.each do |l|
-              socket.puts l
+              loop do
+                begin
+                  socket.puts l
+                  break
+                rescue Errno::ECONNRESET
+                  STDERR.puts "Retry"
+                  socket.close
+                  sleep 2
+                  socket = TCPSocket.open(numeric_address, port)
+                  sleep 2
+                end
+              end
             end
             socket.flush
           end
