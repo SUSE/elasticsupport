@@ -1,10 +1,11 @@
 CLIENT (REQUESTED FROM): %{IP:client}
 API [\w\.]+
-CALL (CALL): %{API:api}\([^\)]*(\))?
-CALLER (CALLER): \([^\)]*\)
+
+# see OSAARGS
+RHNARGS ([\w\d,\s\._\[\]\{\}\<\>\*=:-]|\'[^\']*\'|\"[^\"]*\")*
 DURATION (TIME): %{BASE10NUM:duration:float} (seconds)
 
 XMLRPCFAULT (redstone\.xmlrpc\.XmlRpcFault: %{GREEDYDATA:fault})
 TRACEBACK (\tat )
 
-TIMESTAMP [^\]]+
+RHNTIMESTAMP [\d:\s,-]+
