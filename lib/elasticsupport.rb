@@ -42,7 +42,7 @@ module Elasticsupport
     # @param [Object] Directory of unpacked supportconfig data
     #                 or [Enumerable] TarReader
     #
-    def initialize handle
+    def initialize handle, elastic
       @client = Elasticsearch::Client.new # log: true
       if handle.is_a? Enumerable
         # assume TarReader
@@ -51,6 +51,7 @@ module Elasticsupport
         raise "#{handle.inspect} is not a directory" unless File.directory?(handle)
       end
       @handle = handle
+      @elastic = elastic
       @timestamp = nil
       @hostname = nil
       @done = []
@@ -104,7 +105,7 @@ module Elasticsupport
         STDERR.puts "No hostname, running index"
         index # parse basic-environment.txt
       end
-      @logstash = Logstash.new @hostname, @timestamp
+      @logstash = Logstash.new @elastic, @hostname, @timestamp
       @logstash.spacewalk @handle
     end
   end # class

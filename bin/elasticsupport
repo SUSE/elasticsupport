@@ -13,14 +13,18 @@ require 'rubygems/package' # TarReader
 require 'bzip2/bzip2'
 require 'elasticsupport'
 
+ELASTIC_DEFAULT = "localhost:9200"
+
 def usage(msg=nil)
   STDERR.puts "*** Err: #{msg}" if msg
   STDERR.puts "Usage:"
-  STDERR.puts "elasticsupport <dir>|<tarball> [<file> [<file> ...]]"
+  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir>|<tarball> [<file> [<file> ...]]"
   STDERR.puts "\t<dir> => unpacked supportconfig tarball"
   STDERR.puts "\t<tarball> => (compressed) supportconfig tarball"
   STDERR.puts ""
   STDERR.puts "\t<file> => file to parse from supportconfig"
+  STDERR.puts ""
+  STDERR.puts "--elastic defaults to #{ELASTIC_DEFAULT}"
   exit 1
 end
 
@@ -28,19 +32,19 @@ end
 # parse_supportconfig from directory (unpacked) or TarReader (tbz stream)
 #
 
-def parse_supportconfig handle, files
+def parse_supportconfig elastic, handle, files
 #  puts "parse_supportconfig #{files.inspect}"
   default_files = [ "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
   if files.nil? || files.empty?
     files = default_files
   end
 #  puts "Supportconfig: #{handle}"
-  elasticsupport = Elasticsupport::Elasticsupport.new handle
+  elasticsupport = Elasticsupport::Elasticsupport.new handle, elastic
 #  elasticsupport.index files
   elasticsupport.spacewalk
 end
 
-def parse_tarball file, files
+def parse_tarball elastic, file, files
   # assume tarball
 #  puts "Assume #{file} is a tarball"
   begin
@@ -51,17 +55,17 @@ def parse_tarball file, files
     STDERR.puts "#{file} is not a tarball"
     raise
   end
-  parse_supportconfig uncompressed, files
+  parse_supportconfig elastic, uncompressed, files
 end
 
-def parse_argument arg, files
+def parse_argument elastic, arg, files
 #  puts "parse_argument #{files.inspect}"
   # try <dir>/supportconfig.txt
   if File.directory?(arg)
     dir = File.expand_path(arg)
     if File.readable?(File.join(dir, "supportconfig.txt"))
       # assume unpackage supportconfig
-      parse_supportconfig dir, files
+      parse_supportconfig elastic, dir, files
     else
       # look inside dir
       Dir.open(dir).each do |f|
@@ -70,7 +74,7 @@ def parse_argument arg, files
       end
     end
   elsif File.readable?(arg)
-    parse_tarball arg, files
+    parse_tarball elastic, arg, files
   else
     STDERR.puts "'#{arg}' is neither a directory nor a tarball"
   end
@@ -78,6 +82,13 @@ end
 
 arg = ARGV.shift
 
+elastic = ELASTIC_DEFAULT
+
+if arg == "--elastic"
+  elastic = ARGV.shift
+  arg = ARGV.shift
+end
+
 usage "<arg> parameter missing" unless arg
 
-parse_argument arg, ARGV
+parse_argument elastic, arg, ARGV
