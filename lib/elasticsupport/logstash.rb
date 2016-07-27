@@ -87,6 +87,11 @@ OUTPUT
       end
     end
 
+    def throughput start, count
+      duration = Time.now - start
+      lps = count / duration
+      STDERR.puts "#{count} lines in #{duration} seconds: #{lps} lines per second"
+    end
     #
     # logpipe
     # pipe log from <directory>/<path> to socket
@@ -134,10 +139,13 @@ OUTPUT
 #      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) #Nagle
           STDERR.puts "Piping #{entry} to logstash @ #{numeric_address}:#{port}"
           File.open(entry) do |f|
+            start = Time.now
+            count = 0
             f.each do |l|
               loop do
                 begin
                   socket.puts l
+                  count += 1
                   break
                 rescue Errno::ECONNRESET
                   STDERR.puts "Retry"
@@ -147,8 +155,12 @@ OUTPUT
                   sleep 2
                 end
               end
+              if count % 10000 == 0
+                throughput start, count
+              end
             end
             socket.flush
+            throughput start, count
           end
         end
       end # chdir
