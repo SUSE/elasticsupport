@@ -91,4 +91,5 @@ end
 
 usage "<arg> parameter missing" unless arg
 
+STDERR.puts "Elasticsearch @ #{elastic}"
 parse_argument elastic, arg, ARGV
