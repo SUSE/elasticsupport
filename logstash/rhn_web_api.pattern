@@ -2,7 +2,7 @@ CLIENT (REQUESTED FROM): %{IP:client}
 API [\w\.]+
 
 # see OSAARGS
-RHNARGS ([\w\d,\s\._\[\]\{\}\<\>\*=:-]|\'[^\']*\'|\"[^\"]*\")*
+RHNARGS (\'[^\']*\'|\"[^\"]*\"|[\w\d,\s\._\[\]\{\}\<\>\*\?\"/=:-])*
 DURATION (TIME): %{BASE10NUM:duration:float} (seconds)
 
 XMLRPCFAULT (redstone\.xmlrpc\.XmlRpcFault: %{GREEDYDATA:fault})
