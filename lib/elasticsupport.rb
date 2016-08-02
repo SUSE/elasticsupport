@@ -100,13 +100,13 @@ module Elasticsupport
     #
     # only works for unpacked directories
     #
-    def spacewalk
+    def spacewalk files=[]
       unless @hostname
         STDERR.puts "No hostname, running index"
         index # parse basic-environment.txt
       end
       @logstash = Logstash.new @elastic, @hostname, @timestamp
-      @logstash.spacewalk @handle
+      @logstash.spacewalk @handle, files
     end
   end # class
 

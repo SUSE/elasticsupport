@@ -23,7 +23,9 @@ module Elasticsupport
     [ 'httpd-logs/apache2/error_log', 9001 ],
     [ 'rhn-logs/rhn/rhn_web_api.log', 9002 ],
     [ 'rhn-logs/rhn/osa-dispatcher.log', 9003 ],
-    [ 'rhn-logs/rhn/rhn_server_sat.log', 9004 ]
+    [ 'rhn-logs/rhn/rhn_server_sat.log', 9004 ],
+    # 9005 -> log4j, 9006 -> tomcat
+    [ 'rhn-logs/rhn/rhn_server_xmlrpc.log', 9007 ]
   ]
 
   class Logstash
@@ -37,7 +39,7 @@ module Elasticsupport
       @logstashdir = File.expand_path(File.join(@dirname, "..", "..", "logstash"))
     end
 
-    def spacewalk handle
+    def spacewalk handle, files = []
       unless File.directory?(handle)
         STDERR.puts "Logstash: Not a directory - #{handle.inspect}"
         return
@@ -51,6 +53,15 @@ module Elasticsupport
       end
       create_output
       LOGS.each do |file, port|
+        match = true
+        unless files.empty?
+          match = false
+          files.each do |f|
+            match = Regexp.new(f).match(file)
+            break if match
+          end
+        end
+        next unless match        
         begin
           socket = TCPSocket.open(HOST, port)
           logpipe debugdir, file, socket
@@ -119,6 +130,8 @@ OUTPUT
       
       Dir.chdir(directory) do
         files.each do |entry|
+          next unless entry
+          next if entry[0,1] == "."
           unless File.readable?(entry)
             STDERR.puts "*** Not readable: #{entry}"
             next
