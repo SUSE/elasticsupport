@@ -1,4 +1,4 @@
-CLIENT (REQUESTED FROM): %{IP:client}
+CLIENT (REQUESTED FROM): %{IP:clientip}
 API [\w\.]+
 
 # see OSAARGS
