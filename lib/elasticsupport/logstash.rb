@@ -49,9 +49,6 @@ output {
     hosts => ["#{@elastic}"]
     index => #{indexname.inspect}
   }
-  if ("_grokparsefailure" in [tags]) {
-    stdout { codec => rubydebug }
-  }
 }
 OUTPUT
       end
