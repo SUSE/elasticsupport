@@ -9,8 +9,6 @@
 # Field    (Column)   nevra
 
 require 'rubygems'
-require 'rubygems/package' # TarReader
-require 'bzip2/bzip2'
 $:.push(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'elasticsupport'
 
@@ -19,9 +17,8 @@ ELASTIC_DEFAULT = "localhost:9200"
 def usage(msg=nil)
   STDERR.puts "*** Err: #{msg}" if msg
   STDERR.puts "Usage:"
-  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir>|<tarball> [<file> [<file> ...]]"
+  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir> [<file> [<file> ...]]"
   STDERR.puts "\t<dir> => unpacked supportconfig tarball"
-  STDERR.puts "\t<tarball> => (compressed) supportconfig tarball"
   STDERR.puts ""
   STDERR.puts "\t<file> => file to parse from supportconfig"
   STDERR.puts ""
@@ -44,20 +41,6 @@ def parse_supportconfig elastic, handle, files
 #  elasticsupport.index files
   files -= default_files
   elasticsupport.spacewalk files
-end
-
-def parse_tarball elastic, file, files
-  # assume tarball
-#  puts "Assume #{file} is a tarball"
-  begin
-    uncompressed = Gem::Package::TarReader.new(Zlib::GzipReader.open(file))
-  rescue Zlib::GzipFile::Error
-    uncompressed = Gem::Package::TarReader.new(Bzip2::Reader.open(file))
-  rescue
-    STDERR.puts "#{file} is not a tarball"
-    raise
-  end
-  parse_supportconfig elastic, uncompressed, files
 end
 
 def parse_argument elastic, arg, files
