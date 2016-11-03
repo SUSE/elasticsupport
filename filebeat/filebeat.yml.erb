@@ -1,0 +1,41 @@
+filebeat:
+  prospectors:
+    -
+      paths:
+        - <%=apache_prefix%>/apache2/access_log
+      encoding: utf-8
+      input_type: log
+      document_type: access_log
+
+    -
+      paths:
+        - <%=apache_prefix%>/apache2/error_log
+      encoding: utf-8
+      input_type: log
+      document_type: error_log
+
+    -
+      paths:
+        - <%=rhn_prefix%>/rhn/rhn_web_api.log
+      encoding: utf-8
+      input_type: log
+      document_type: rhn_web_api
+
+    -
+      paths:
+        - <%=rhn_prefix%>/rhn/osa-dispatcher.log
+      encoding: utf-8
+      input_type: log
+      document_type: osa-dispatcher
+
+
+output:
+  logstash:
+    # see also logstash/input.conf
+    hosts: ["localhost:5045"]
+
+shipper:
+
+logging:
+  files:
+    rotateeverybytes: 10485760 # = 10MB

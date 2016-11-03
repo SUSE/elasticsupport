@@ -1,7 +1,10 @@
 *.gem
 .bundle
+.filebeat
 Gemfile.lock
 pkg/*
 .yardoc
 *.rbc
 *~
+logstash/output.conf
+filebeat/filebeat.yml

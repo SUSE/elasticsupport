@@ -11,6 +11,7 @@
 require 'rubygems'
 require 'rubygems/package' # TarReader
 require 'bzip2/bzip2'
+$:.push(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'elasticsupport'
 
 ELASTIC_DEFAULT = "localhost:9200"

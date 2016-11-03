@@ -14,20 +14,7 @@ require 'rubygems'
 require 'logger'
 
 module Elasticsupport
-  # logstash
-  HOST = 'localhost'
   
-  LOGS = [
-     # logfile, logstash-tcp-port
-    [ 'httpd-logs/apache2/access_log', 9000 ],
-    [ 'httpd-logs/apache2/error_log', 9001 ],
-    [ 'rhn-logs/rhn/rhn_web_api.log', 9002 ],
-    [ 'rhn-logs/rhn/osa-dispatcher.log', 9003 ],
-    [ 'rhn-logs/rhn/rhn_server_sat.log', 9004 ],
-    # 9005 -> log4j, 9006 -> tomcat
-    [ 'rhn-logs/rhn/rhn_server_xmlrpc.log', 9007 ]
-  ]
-
   class Logstash
 
     # initialize with hostname and timestamp of the supportconfig
@@ -39,38 +26,8 @@ module Elasticsupport
       @logstashdir = File.expand_path(File.join(@dirname, "..", "..", "logstash"))
     end
 
-    def spacewalk handle, files = []
-      unless File.directory?(handle)
-        STDERR.puts "Logstash: Not a directory - #{handle.inspect}"
-        return
-      end
-      debugdir = File.join(handle, 'spacewalk-debug')
-      unless File.directory?(debugdir)
-        STDERR.puts "spacewalk-debug isn't unpacked in #{handle.inspect}"
-        Dir.chdir(handle) do
-          system("tar xf spacewalk-debug.tar.bz2")
-        end
-      end
+    def run handle, files = []
       create_output
-      LOGS.each do |file, port|
-        match = true
-        unless files.empty?
-          match = false
-          files.each do |f|
-            match = Regexp.new(f).match(file)
-            break if match
-          end
-        end
-        next unless match        
-        begin
-          socket = TCPSocket.open(HOST, port)
-          logpipe debugdir, file, socket
-          socket.close rescue nil
-        rescue Errno::ECONNREFUSED
-          STDERR.puts "*** Logstash is not listening on #{HOST}:#{port}"
-          exit 1
-        end
-      end
     end
 
     private

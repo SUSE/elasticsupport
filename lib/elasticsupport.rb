@@ -20,6 +20,7 @@ require 'elasticsupport/basic_environment'
 require 'elasticsupport/rpm'
 require 'elasticsupport/hardware'
 require 'elasticsupport/logstash'
+require 'elasticsupport/filebeat'
 
 module Elasticsupport
 
@@ -106,7 +107,9 @@ module Elasticsupport
         index # parse basic-environment.txt
       end
       @logstash = Logstash.new @elastic, @hostname, @timestamp
-      @logstash.spacewalk @handle, files
+      @logstash.run @handle, files
+      @filebeat = Filebeat.new @elastic, @hostname, @timestamp
+      @filebeat.run @handle, files
     end
   end # class
 
