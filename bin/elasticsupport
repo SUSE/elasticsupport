@@ -18,9 +18,8 @@ ELASTIC_DEFAULT = "localhost:9200"
 def usage(msg=nil)
   STDERR.puts "*** Err: #{msg}" if msg
   STDERR.puts "Usage:"
-  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir>|<tarball> [<file> [<file> ...]]"
+  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir> [<file> [<file> ...]]"
   STDERR.puts "\t<dir> => unpacked supportconfig tarball"
-  STDERR.puts "\t<tarball> => (compressed) supportconfig tarball"
   STDERR.puts ""
   STDERR.puts "\t<file> => file to parse from supportconfig"
   STDERR.puts ""

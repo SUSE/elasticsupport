@@ -3,4 +3,7 @@
 export DIR=$(readlink -f ${0%/*})
 echo "DIR $DIR"
 cd $DIR
-/opt/logstash/bin/logstash -f ./\*.conf --auto-reload
+# 2.3
+#/usr/share/logstash/bin/logstash -f ./\*.conf --auto-reload
+# 5.0
+/usr/share/logstash/bin/logstash --path.settings $DIR

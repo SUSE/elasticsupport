@@ -54,6 +54,8 @@ module Elasticsupport
       end
       out = create_yml debugdir
       puts "Running filebeat"
+      # remove 'last sync point' file to force filebeat to transfer files completely
+      File.delete(".filebeat") rescue nil
       system "filebeat -c #{out}"
       puts "Stopped filebeat"
     end

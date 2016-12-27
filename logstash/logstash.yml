@@ -1,0 +1,3 @@
+path.data: /abuild/projects/elastic/elasticsupport/logstash/data
+path.config: /abuild/projects/elastic/elasticsupport/logstash/*.conf
+path.logs: /abuild/projects/elastic/elasticsupport/logstash/log
