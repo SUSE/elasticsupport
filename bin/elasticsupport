@@ -9,10 +9,9 @@
 # Field    (Column)   nevra
 
 require 'rubygems'
-require 'rubygems/package' # TarReader
-require 'bzip2/bzip2'
 $:.push(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'elasticsupport'
+require 'tmpdir'
 
 ELASTIC_DEFAULT = "localhost:9200"
 
@@ -30,12 +29,12 @@ def usage(msg=nil)
 end
 
 #
-# parse_supportconfig from directory (unpacked) or TarReader (tbz stream)
+# parse_supportconfig from directory (unpacked) or file (unpack to /var/tmp)
 #
 
 def parse_supportconfig elastic, handle, files
 #  puts "parse_supportconfig #{files.inspect}"
-  default_files = [ "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
+  default_files = [ "supportconfig.txt", "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
   if files.nil? || files.empty?
     files = default_files
   end
@@ -43,21 +42,39 @@ def parse_supportconfig elastic, handle, files
   elasticsupport = Elasticsupport::Elasticsupport.new handle, elastic
 #  elasticsupport.index files
   files -= default_files
-  elasticsupport.spacewalk files
+  elasticsupport.consume files
 end
 
-def parse_tarball elastic, file, files
+def unpack_and_parse_tarball elastic, file, files
   # assume tarball
 #  puts "Assume #{file} is a tarball"
+  current = Dir.getwd
+  fullpath = File.expand_path(File.join(current, file))
   begin
-    uncompressed = Gem::Package::TarReader.new(Zlib::GzipReader.open(file))
-  rescue Zlib::GzipFile::Error
-    uncompressed = Gem::Package::TarReader.new(Bzip2::Reader.open(file))
+    # extract tarball to temp dir
+    Dir.mktmpdir do |tmpdir|
+      STDERR.puts "Unpacking #{fullpath} to #{tmpdir}"
+      system("tar -C #{tmpdir} -xf #{fullpath}")
+      Dir.foreach(tmpdir) do |item|
+        # find extracted dir
+        next if item == '.' or item == '..'
+        unpacked = File.join(tmpdir, item)
+#        STDERR.puts "Unpacked #{unpacked}:"
+        system("ls #{unpacked}")
+        # look for spacewalk-debug.tar.bz2 and unpack it too
+        spacewalk_debug = File.join(unpacked, "spacewalk-debug")
+        begin
+          system("tar -C #{unpacked} -xf #{spacewalk_debug}.tar.bz2")
+        rescue
+          STDERR.puts "#{spacewalk_debug} not found"
+        end
+      end
+#  parse_supportconfig elastic, uncompressed, files
+    end
   rescue
     STDERR.puts "#{file} is not a tarball"
     raise
   end
-  parse_supportconfig elastic, uncompressed, files
 end
 
 def parse_argument elastic, arg, files
@@ -66,7 +83,7 @@ def parse_argument elastic, arg, files
   if File.directory?(arg)
     dir = File.expand_path(arg)
     if File.readable?(File.join(dir, "supportconfig.txt"))
-      # assume unpackage supportconfig
+      # assume unpackaged supportconfig
       parse_supportconfig elastic, dir, files
     else
       # look inside dir
@@ -76,7 +93,7 @@ def parse_argument elastic, arg, files
       end
     end
   elsif File.readable?(arg)
-    parse_tarball elastic, arg, files
+    unpack_and_parse_tarball elastic, arg, files
   else
     STDERR.puts "'#{arg}' is neither a directory nor a tarball"
   end
