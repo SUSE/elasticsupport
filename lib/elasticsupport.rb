@@ -16,11 +16,9 @@ require 'supportconfig'
 require 'elasticsupport/version'
 require 'elasticsupport/logging'
 require 'elasticsupport/supportconfig'
-require 'elasticsupport/basic_environment'
-require 'elasticsupport/rpm'
-require 'elasticsupport/hardware'
 require 'elasticsupport/logstash'
 require 'elasticsupport/filebeat'
+require 'elasticsupport/content'
 
 module Elasticsupport
 
@@ -34,7 +32,7 @@ module Elasticsupport
     require 'elasticsearch'
 
     attr_reader :client
-    attr_accessor :timestamp, :hostname
+    attr_accessor :name
 
     # constructor
     #
@@ -44,6 +42,7 @@ module Elasticsupport
     #                 or [Enumerable] TarReader
     #
     def initialize handle, elastic
+      puts "#{self.class}.initialize #{handle.class}:#{handle.inspect}"
       @client = Elasticsearch::Client.new # log: true
       if handle.is_a? Enumerable
         # assume TarReader
@@ -53,8 +52,7 @@ module Elasticsupport
       end
       @handle = handle
       @elastic = elastic
-      @timestamp = nil
-      @hostname = nil
+      @name = nil
       @done = []
     end
 
@@ -63,27 +61,24 @@ module Elasticsupport
     # @param [Array] list of files to import from
     #
     def index files = []
-      files.unshift 'basic-environment.txt' # get timestamp and hostname first
       files.each do |entry|
         next unless entry =~ /^(.*)\.txt$/
         next if @done.include? entry
         @done << entry
         puts "*** #{entry} <#{@handle.inspect}>"
-        if $1 == "supportconfig"
-          raise "Please remove 'supportconfig.txt from list of files to index"
-        end
         # convert filename to class name
         # foo.bar -> foo_bar
         # foo-bar -> FooBar
         klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
         begin
           begin
-            klass = ::Elasticsupport.const_get(klassname)
+            klass = ::Elasticsupport.const_get("Content::#{klassname}")
           rescue NameError
             STDERR.puts "Parser missing for #{entry}"
             next
           end
-          next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
+#          puts "Found class #{klass}"
+          next unless klass.to_s =~ /Elasticsupport::Content/ # ensure Module 'Elasticsupport'
           # create instance (parses file, writes to DB)
           klass.new self, @handle, entry
 #        rescue NameError => e
@@ -92,24 +87,20 @@ module Elasticsupport
           STDERR.puts "Elasticsearch DB not running"
         end
       end
-      unless @hostname
-        raise "Couldn't determine hostname !"
+      unless @name
+        raise "Couldn't determine name !"
       end
     end # def index
 
-    # check for spacewalk-debug
+    # consume supportconfig files
     #
-    # only works for unpacked directories
-    #
-    def spacewalk files=[]
-      unless @hostname
-        STDERR.puts "No hostname, running index"
-        index # parse basic-environment.txt
-      end
-      @logstash = Logstash.new @elastic, @hostname, @timestamp
-      @logstash.run @handle, files
-      @filebeat = Filebeat.new @elastic, @hostname, @timestamp
-      @filebeat.run @handle, files
+    def consume files=[]
+      default_files = [ "supportconfig.txt", "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
+      index default_files + files
+#      @logstash = Logstash.new @elastic, @name
+#      @logstash.run @handle, files
+#      @filebeat = Filebeat.new @elastic, @name
+#      @filebeat.run @handle, files
     end
   end # class
 

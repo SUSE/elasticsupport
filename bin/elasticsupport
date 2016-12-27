@@ -32,15 +32,8 @@ end
 #
 
 def parse_supportconfig elastic, handle, files
-#  puts "parse_supportconfig #{files.inspect}"
-  default_files = [ "supportconfig.txt", "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
-  if files.nil? || files.empty?
-    files = default_files
-  end
-#  puts "Supportconfig: #{handle}"
+  puts "parse_supportconfig: #{handle.class}:#{handle.inspect}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle, elastic
-#  elasticsupport.index files
-  files -= default_files
   elasticsupport.consume files
 end
 
@@ -59,16 +52,16 @@ def unpack_and_parse_tarball elastic, file, files
         next if item == '.' or item == '..'
         unpacked = File.join(tmpdir, item)
 #        STDERR.puts "Unpacked #{unpacked}:"
-        system("ls #{unpacked}")
+#        system("ls #{unpacked}")
         # look for spacewalk-debug.tar.bz2 and unpack it too
         spacewalk_debug = File.join(unpacked, "spacewalk-debug")
         begin
           system("tar -C #{unpacked} -xf #{spacewalk_debug}.tar.bz2")
         rescue
-          STDERR.puts "#{spacewalk_debug} not found"
+          STDERR.puts "#{spacewalk_debug}.tar.bz2 not found"
         end
+        parse_supportconfig elastic, unpacked, files
       end
-#  parse_supportconfig elastic, uncompressed, files
     end
   rescue
     STDERR.puts "#{file} is not a tarball"

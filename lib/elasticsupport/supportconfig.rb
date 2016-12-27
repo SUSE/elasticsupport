@@ -23,10 +23,9 @@ module Elasticsupport
         mappings.each do |type, mapping|
           # insert ':properties' level
           # see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
-          # add 'timestamp' and 'hostname'
+          # add 'timestamp' and 'name'
           properties = {
-            hostname: { type: 'string', index: 'not_analyzed' },
-            timestamp: { type: 'date' }
+            name: { type: 'string', index: 'not_analyzed' }
           }
           properties.merge! mapping
 #          puts "#{self.class} mappings #{type} => #{properties.inspect}"
@@ -57,7 +56,7 @@ module Elasticsupport
     # - call superclass constructor (parses file, calls callback)
     #
     def initialize elasticsupport, dir, fname
-      # save caller instanc to set/access hostname, timestamp, etc.
+      # save caller instanc to set/access name, timestamp, etc.
       @elasticsupport = elasticsupport
       if self.respond_to? :_mappings
         provide_mappings_to_elasticsearch self._mappings
@@ -69,16 +68,13 @@ module Elasticsupport
     end
     
     # called from BasicSupport
-    def hostname= hostname
-      @elasticsupport.hostname = hostname
-    end
-    def timestamp= timestamp
-      @elasticsupport.timestamp = timestamp
+    def name= name
+      @elasticsupport.name = name
     end
 
     def _write type, body
-      body[:timestamp] = @elasticsupport.timestamp.to_i * 1000 # ensure timestamp field as msec since epoch
-      body[:hostname] = @elasticsupport.hostname
+      puts "_write #{type}:#{body.inspect}"
+      body[:name] = @elasticsupport.name
       @elasticsupport.client.index index: _index_for(type), type: type.to_s, body: body
 #     puts body.inspect
     end
