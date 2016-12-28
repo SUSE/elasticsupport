@@ -32,7 +32,6 @@ end
 #
 
 def parse_supportconfig elastic, handle, files
-  puts "parse_supportconfig: #{handle.class}:#{handle.inspect}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle, elastic
   elasticsupport.consume files
 end

@@ -42,7 +42,7 @@ module Elasticsupport
     #                 or [Enumerable] TarReader
     #
     def initialize handle, elastic
-      puts "#{self.class}.initialize #{handle.class}:#{handle.inspect}"
+#      puts "#{self.class}.initialize #{handle.class}:#{handle.inspect}"
       @client = Elasticsearch::Client.new # log: true
       if handle.is_a? Enumerable
         # assume TarReader
@@ -90,6 +90,8 @@ private
       if already
         id = already["_id"]
         already = already["_source"]["files"]
+      else
+        already = []
       end
       files.each do |entry|
         next if already.include? entry
@@ -100,9 +102,8 @@ private
       unless @name
         raise "Couldn't determine name !"
       end
-      if already
-        r = content._update :content, id, { doc: { files: (files + already).uniq } }
-        puts "Update result: #{r.inspect}"
+      if id
+        content._update :content, id, { doc: { files: (files + already).uniq } }
       else
         content._write :content, files: files
       end
@@ -111,12 +112,12 @@ public
     # consume supportconfig files
     #
     def consume files=[]
-      default_files = [ "basic-environment.txt", "hardware.txt" , "rpm.txt" ]
+      default_files = [ "basic-environment.txt", "hardware.txt" ] # , "rpm.txt" ]
       import_many default_files + files
 #      @logstash = Logstash.new @elastic, @name
 #      @logstash.run @handle, files
-#      @filebeat = Filebeat.new @elastic, @name
-#      @filebeat.run @handle, files
+      @filebeat = Filebeat.new @elastic, @name
+      @filebeat.run @handle, files
     end
   end # class
 
