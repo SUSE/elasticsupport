@@ -23,7 +23,7 @@ module Elasticsupport
         mappings.each do |type, mapping|
           # insert ':properties' level
           # see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
-          # add 'timestamp' and 'name'
+          # add 'name'
           properties = {
             name: { type: 'string', index: 'not_analyzed' }
           }
@@ -53,15 +53,16 @@ module Elasticsupport
     #
     # constructor
     # - provide mapping to Elasticsearch
-    # - call superclass constructor (parses file, calls callback)
+    #  unless fname.nil?
+    #   - call superclass constructor (parses file, calls callback)
     #
-    def initialize elasticsupport, dir, fname
+    def initialize elasticsupport, dir, fname = nil
       # save caller instanc to set/access name, timestamp, etc.
       @elasticsupport = elasticsupport
       if self.respond_to? :_mappings
         provide_mappings_to_elasticsearch self._mappings
       end
-      super dir, fname
+      super dir, fname if fname
     end
     def _index_for type
       "#{INDEX}"
@@ -73,10 +74,20 @@ module Elasticsupport
     end
 
     def _write type, body
-      puts "_write #{type}:#{body.inspect}"
+#      puts "_write #{type}:#{body.inspect}"
       body[:name] = @elasticsupport.name
       @elasticsupport.client.index index: _index_for(type), type: type.to_s, body: body
 #     puts body.inspect
+    end
+
+    # read type which matches name
+    def _read type, name
+      result = @elasticsupport.client.search index: _index_for(type), type: type.to_s, q: "name:#{name}"
+      result["hits"]["hits"][0] rescue nil
+    end
+    # update type with id
+    def _update type, id, body
+      @elasticsupport.client.update index: _index_for(type), type: type.to_s, id: id, body: body
     end
   end
 end

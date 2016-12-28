@@ -53,50 +53,66 @@ module Elasticsupport
       @handle = handle
       @elastic = elastic
       @name = nil
-      @done = []
     end
-
-    # index list of file
+private
+    # import single file
+    def import_single name, file
+      # convert filename to class name
+      # foo.bar -> foo_bar
+      # foo-bar -> FooBar
+      klassname = name.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
+      begin
+        klass = ::Elasticsupport.const_get("Content::#{klassname}")
+      rescue NameError
+        STDERR.puts "Parser missing for #{file}"
+        return
+      end
+      #          puts "Found class #{klass}"
+      return unless klass.to_s =~ /Elasticsupport::Content/ # ensure Module 'Elasticsupport'
+      begin
+        # create instance (parses file, writes to DB)
+        klass.new self, @handle, file
+      rescue Faraday::ConnectionFailed
+        STDERR.puts "Elasticsearch DB not running"
+      end
+    end
+    # import list of file
     #
     # @param [Array] list of files to import from
     #
-    def index files = []
+    def import_many files
+      # set @name
+      import_single "supportconfig", "supportconfig.txt"
+      # check for already imported files
+      content = Content::Content.new self, @handle
+      already = content._read :content, self.name
+      id = nil
+      if already
+        id = already["_id"]
+        already = already["_source"]["files"]
+      end
       files.each do |entry|
+        next if already.include? entry
         next unless entry =~ /^(.*)\.txt$/
-        next if @done.include? entry
-        @done << entry
         puts "*** #{entry} <#{@handle.inspect}>"
-        # convert filename to class name
-        # foo.bar -> foo_bar
-        # foo-bar -> FooBar
-        klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
-        begin
-          begin
-            klass = ::Elasticsupport.const_get("Content::#{klassname}")
-          rescue NameError
-            STDERR.puts "Parser missing for #{entry}"
-            next
-          end
-#          puts "Found class #{klass}"
-          next unless klass.to_s =~ /Elasticsupport::Content/ # ensure Module 'Elasticsupport'
-          # create instance (parses file, writes to DB)
-          klass.new self, @handle, entry
-#        rescue NameError => e
-#          STDERR.puts "#{e}\n\t#{entry} - not implemented"
-        rescue Faraday::ConnectionFailed
-          STDERR.puts "Elasticsearch DB not running"
-        end
+        import_single $1, entry
       end
       unless @name
         raise "Couldn't determine name !"
       end
-    end # def index
-
+      if already
+        r = content._update :content, id, { doc: { files: (files + already).uniq } }
+        puts "Update result: #{r.inspect}"
+      else
+        content._write :content, files: files
+      end
+    end # def import_many
+public
     # consume supportconfig files
     #
     def consume files=[]
-      default_files = [ "supportconfig.txt", "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
-      index default_files + files
+      default_files = [ "basic-environment.txt", "hardware.txt" , "rpm.txt" ]
+      import_many default_files + files
 #      @logstash = Logstash.new @elastic, @name
 #      @logstash.run @handle, files
 #      @filebeat = Filebeat.new @elastic, @name

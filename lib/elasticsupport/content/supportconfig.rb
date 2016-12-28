@@ -17,15 +17,9 @@ module Elasticsupport
   module Content
     # supportconfig.txt
 
-    class Supportconfig < Elasticsupport::Supportconfig
-      def _mappings
-        {
-          name: {
-            name: { type: 'string', index: 'not_analyzed' }
-          }
-        }
-      end
+    # Sets Elasticsupport::Supportconfig#name
 
+    class Supportconfig < Elasticsupport::Supportconfig
       def verification content
         content.each do |l|
           next unless l =~ /Data Directory:\s+(.*)/

@@ -9,6 +9,7 @@
 #
 
 require 'elasticsupport/content/basic_environment'
+require 'elasticsupport/content/content'
 require 'elasticsupport/content/hardware'
 require 'elasticsupport/content/rpm'
 require 'elasticsupport/content/supportconfig'
