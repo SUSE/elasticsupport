@@ -94,7 +94,10 @@ private
         already = []
       end
       files.each do |entry|
-        next if already.include? entry
+        if already.include? entry
+          puts "Have #{entry} already, skipping"
+          next
+        end
         next unless entry =~ /^(.*)\.txt$/
         puts "*** #{entry} <#{@handle.inspect}>"
         import_single $1, entry
