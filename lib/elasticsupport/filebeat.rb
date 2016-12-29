@@ -45,12 +45,17 @@ module Elasticsupport
         STDERR.puts "Please start logstash first"
         exit 1
       end
-      out = create_yml File.join(handle, 'spacewalk-debug')
-      puts "Running filebeat"
-      # remove 'last sync point' file to force filebeat to transfer files completely
-      File.delete(".filebeat") rescue nil
-      system "filebeat -c #{out}"
-      puts "Stopped filebeat"
+      dir = File.join(handle, 'spacewalk-debug')
+      if File.directory?(dir)
+        out = create_yml dir
+        puts "Running filebeat on #{dir}"
+        # remove 'last sync point' file to force filebeat to transfer files completely
+        File.delete(".filebeat") rescue nil
+        system "filebeat -c #{out}"
+        puts "Stopped filebeat"
+      else
+        puts "No spacewalk-debug - not Manager Server"
+      end
     end
 
     private
