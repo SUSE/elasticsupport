@@ -58,13 +58,63 @@ OUTPUT
       lps = count / duration
       STDERR.puts "#{count} lines in #{duration} seconds: #{lps} lines per second"
     end
+    
+    # prep @socket reconnect and writing
+    def open socket
+      @socket = socket
+      @address_family, @port, @hostname, @numeric_address = @socket.peeraddr(:numeric)
+    end
+    def write_file entry
+      STDERR.puts "Piping #{entry} to logstash @ #{@numeric_address}:#{@port}"
+      @start = Time.now
+      @count = 0
+      File.open(entry) do |f|
+        f.each do |l|
+          write_line l
+        end
+        close
+      end
+    end
+    def write_array a
+      STDERR.puts "Piping array to logstash @ #{@numeric_address}:#{@port}"
+      @start = Time.now
+      @count = 0
+      a.each do |l|
+        write_line l
+      end
+      close
+    end
+    # write a line to @socket
+    def write_line l
+      loop do
+        begin
+          @socket.puts l
+          @count += 1
+          break
+        rescue Errno::ECONNRESET
+          STDERR.puts "Retry"
+          @socket.close
+          sleep 2
+          @socket = TCPSocket.open(@numeric_address, @port)
+          sleep 2
+        end
+      end
+      if @count % 10000 == 0
+        throughput @start, @count
+      end
+    end
+    # close @socket
+    def close
+      @socket.flush
+      throughput @start, @count
+    end
     #
     # logpipe
     # pipe log from <directory>/<path> to socket
     #
     def logpipe directory, path, socket
       # save for later retry if connection is reset (logstash restart)
-      address_family, port, hostname, numeric_address = socket.peeraddr(:numeric)
+      open socket
       # move directory parts from path to directory
       local_dir = File.dirname(path)
       filepattern = Regexp.new(File.basename(path))
@@ -105,31 +155,7 @@ OUTPUT
           STDERR.puts "#{entry}"
         
 #      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) #Nagle
-          STDERR.puts "Piping #{entry} to logstash @ #{numeric_address}:#{port}"
-          File.open(entry) do |f|
-            start = Time.now
-            count = 0
-            f.each do |l|
-              loop do
-                begin
-                  socket.puts l
-                  count += 1
-                  break
-                rescue Errno::ECONNRESET
-                  STDERR.puts "Retry"
-                  socket.close
-                  sleep 2
-                  socket = TCPSocket.open(numeric_address, port)
-                  sleep 2
-                end
-              end
-              if count % 10000 == 0
-                throughput start, count
-              end
-            end
-            socket.flush
-            throughput start, count
-          end
+          write_file entry
         end
       end # chdir
     end
