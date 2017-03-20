@@ -31,7 +31,7 @@ module Elasticsupport
   class Elasticsupport
     require 'elasticsearch'
 
-    attr_reader :client
+    attr_reader :client, :logstash, :elastic
     attr_accessor :name
 
     # constructor
