@@ -51,7 +51,7 @@ module Elasticsupport
         puts "Running filebeat on #{dir}"
         # remove 'last sync point' file to force filebeat to transfer files completely
         File.delete(".filebeat") rescue nil
-        system "filebeat -c #{out}"
+        system "filebeat -once -c #{out}"
         puts "Stopped filebeat"
       else
         puts "No spacewalk-debug - not Manager Server"
