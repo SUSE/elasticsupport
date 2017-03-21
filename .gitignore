@@ -8,3 +8,6 @@ pkg/*
 *~
 logstash/output.conf
 filebeat/filebeat.yml
+data/
+logs/
+logstash/data
