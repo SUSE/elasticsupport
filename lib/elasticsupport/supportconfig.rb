@@ -39,6 +39,9 @@ module Elasticsupport
                   type => { properties: properties }
                 }
               }
+          rescue Faraday::ConnectionFailed
+            STDERR.puts "Can't connect to elasticsearch. Please start elasticsearch."
+            exit 1
           rescue Elasticsearch::Transport::Transport::Errors::BadRequest => arg
             raise unless arg.message =~ /index_already_exists_exception/
             # update mapping
