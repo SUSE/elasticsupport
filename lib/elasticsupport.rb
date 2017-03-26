@@ -90,6 +90,7 @@ module Elasticsupport
 #          STDERR.puts "#{e}\n\t#{entry} - not implemented"
         rescue Faraday::ConnectionFailed
           STDERR.puts "Elasticsearch DB not running"
+          exit 1
         end
       end
       unless @hostname
