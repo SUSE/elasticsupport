@@ -117,10 +117,13 @@ public
     def consume files=[]
       default_files = [ "basic-environment.txt", "hardware.txt" ] # , "rpm.txt" ]
       import_many default_files + files
-#      @logstash = Logstash.new @elastic, @name
-#      @logstash.run @handle, files
+      @logstash = Logstash.new @elastic, @name
+      @logstash.run @handle, files
       @filebeat = Filebeat.new @elastic, @name
       @filebeat.run @handle, files
+      STDERR.puts "Waiting for logstash process #{@logstash.job} ..."
+      Process.kill( "INT", @logstash.job )
+      Process.wait( @logstash.job )
     end
   end # class
 
