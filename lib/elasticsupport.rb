@@ -16,11 +16,9 @@ require 'supportconfig'
 require 'elasticsupport/version'
 require 'elasticsupport/logging'
 require 'elasticsupport/supportconfig'
-require 'elasticsupport/basic_environment'
-require 'elasticsupport/rpm'
-require 'elasticsupport/hardware'
 require 'elasticsupport/logstash'
 require 'elasticsupport/filebeat'
+require 'elasticsupport/content'
 
 module Elasticsupport
 
@@ -33,8 +31,8 @@ module Elasticsupport
   class Elasticsupport
     require 'elasticsearch'
 
-    attr_reader :client
-    attr_accessor :timestamp, :hostname
+    attr_reader :client, :logstash, :elastic
+    attr_accessor :name
 
     # constructor
     #
@@ -44,6 +42,7 @@ module Elasticsupport
     #                 or [Enumerable] TarReader
     #
     def initialize handle, elastic
+#      puts "#{self.class}.initialize #{handle.class}:#{handle.inspect}"
       @client = Elasticsearch::Client.new # log: true
       if handle.is_a? Enumerable
         # assume TarReader
@@ -53,21 +52,53 @@ module Elasticsupport
       end
       @handle = handle
       @elastic = elastic
-      @timestamp = nil
-      @hostname = nil
-      @done = []
+      @name = nil
     end
-
-    # index list of file
+private
+    # import single file
+    def import_single name, file
+      # convert filename to class name
+      # foo.bar -> foo_bar
+      # foo-bar -> FooBar
+      klassname = name.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
+      begin
+        klass = ::Elasticsupport.const_get("Content::#{klassname}")
+      rescue NameError
+        STDERR.puts "Parser missing for #{file}"
+        return
+      end
+      #          puts "Found class #{klass}"
+      return unless klass.to_s =~ /Elasticsupport::Content/ # ensure Module 'Elasticsupport'
+      begin
+        # create instance (parses file, writes to DB)
+        klass.new self, @handle, file
+      rescue Faraday::ConnectionFailed
+        STDERR.puts "Elasticsearch DB not running"
+      end
+    end
+    # import list of file
     #
     # @param [Array] list of files to import from
     #
-    def index files = []
-      files.unshift 'basic-environment.txt' # get timestamp and hostname first
+    def import_many files
+      # set @name
+      import_single "supportconfig", "supportconfig.txt"
+      # check for already imported files
+      content = Content::Content.new self, @handle
+      already = content._read :content, self.name
+      id = nil
+      if already
+        id = already["_id"]
+        already = already["_source"]["files"]
+      else
+        already = []
+      end
       files.each do |entry|
+        if already.include? entry
+          puts "Have #{entry} already, skipping"
+          next
+        end
         next unless entry =~ /^(.*)\.txt$/
-        next if @done.include? entry
-        @done << entry
         puts "*** #{entry} <#{@handle.inspect}>"
         if $1 == "supportconfig"
           raise "Please remove 'supportconfig.txt from list of files to index"
@@ -93,24 +124,28 @@ module Elasticsupport
           exit 1
         end
       end
-      unless @hostname
-        raise "Couldn't determine hostname !"
+      unless @name
+        raise "Couldn't determine name !"
       end
-    end # def index
-
-    # check for spacewalk-debug
-    #
-    # only works for unpacked directories
-    #
-    def spacewalk files=[]
-      unless @hostname
-        STDERR.puts "No hostname, running index"
-        index # parse basic-environment.txt
+      if id
+        content._update :content, id, { doc: { files: (files + already).uniq } }
+      else
+        content._write :content, files: files
       end
-      @logstash = Logstash.new @elastic, @hostname, @timestamp
+    end # def import_many
+public
+    # consume supportconfig files
+    #
+    def consume files=[]
+      default_files = [ "basic-environment.txt", "hardware.txt" ] # , "rpm.txt" ]
+      import_many default_files + files
+      @logstash = Logstash.new @elastic, @name
       @logstash.run @handle, files
-      @filebeat = Filebeat.new @elastic, @hostname, @timestamp
+      @filebeat = Filebeat.new @elastic, @name
       @filebeat.run @handle, files
+      STDERR.puts "Waiting for logstash process #{@logstash.job} ..."
+      Process.kill( "INT", @logstash.job )
+      Process.wait( @logstash.job )
     end
   end # class
 

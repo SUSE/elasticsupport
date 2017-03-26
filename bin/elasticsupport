@@ -11,36 +11,63 @@
 require 'rubygems'
 $:.push(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'elasticsupport'
+require 'tmpdir'
 
 ELASTIC_DEFAULT = "localhost:9200"
+LOGSTASH_DEFAULT = "localhost:5045"
 
 def usage(msg=nil)
   STDERR.puts "*** Err: #{msg}" if msg
   STDERR.puts "Usage:"
-  STDERR.puts "elasticsupport [--elastic <host>:<port>] <dir> [<file> [<file> ...]]"
+  STDERR.puts "elasticsupport [--elastic <host>:<port>] [--logstash <host>:<port>] <dir> [<file> [<file> ...]]"
   STDERR.puts "\t<dir> => unpacked supportconfig tarball"
   STDERR.puts ""
   STDERR.puts "\t<file> => file to parse from supportconfig"
   STDERR.puts ""
   STDERR.puts "--elastic defaults to #{ELASTIC_DEFAULT}"
+  STDERR.puts "--logstash defaults to #{LOGSTASH_DEFAULT}"
   exit 1
 end
 
 #
-# parse_supportconfig from directory (unpacked) or TarReader (tbz stream)
+# parse_supportconfig from directory (unpacked) or file (unpack to /var/tmp)
 #
 
 def parse_supportconfig elastic, handle, files
-#  puts "parse_supportconfig #{files.inspect}"
-  default_files = [ "basic-environment.txt", "hardware.txt" ]#, "rpm.txt" ]
-  if files.nil? || files.empty?
-    files = default_files
-  end
-#  puts "Supportconfig: #{handle}"
   elasticsupport = Elasticsupport::Elasticsupport.new handle, elastic
-#  elasticsupport.index files
-  files -= default_files
-  elasticsupport.spacewalk files
+  elasticsupport.consume files
+end
+
+def unpack_and_parse_tarball elastic, file, files
+  # assume tarball
+#  puts "Assume #{file} is a tarball"
+  current = Dir.getwd
+  fullpath = File.expand_path(File.join(current, file))
+  begin
+    # extract tarball to temp dir
+    Dir.mktmpdir do |tmpdir|
+      STDERR.puts "Unpacking #{fullpath} to #{tmpdir}"
+      system("tar -C #{tmpdir} -xf #{fullpath}")
+      Dir.foreach(tmpdir) do |item|
+        # find extracted dir
+        next if item == '.' or item == '..'
+        unpacked = File.join(tmpdir, item)
+#        STDERR.puts "Unpacked #{unpacked}:"
+#        system("ls #{unpacked}")
+        # look for spacewalk-debug.tar.bz2 and unpack it too
+        spacewalk_debug = File.join(unpacked, "spacewalk-debug")
+        begin
+          system("tar -C #{unpacked} -xf #{spacewalk_debug}.tar.bz2")
+        rescue
+          STDERR.puts "#{spacewalk_debug}.tar.bz2 not found"
+        end
+        parse_supportconfig elastic, unpacked, files
+      end
+    end
+  rescue
+    STDERR.puts "#{file} is not a tarball"
+    raise
+  end
 end
 
 def parse_argument elastic, arg, files
@@ -49,7 +76,7 @@ def parse_argument elastic, arg, files
   if File.directory?(arg)
     dir = File.expand_path(arg)
     if File.readable?(File.join(dir, "supportconfig.txt"))
-      # assume unpackage supportconfig
+      # assume unpackaged supportconfig
       parse_supportconfig elastic, dir, files
     else
       # look inside dir
@@ -59,7 +86,7 @@ def parse_argument elastic, arg, files
       end
     end
   elsif File.readable?(arg)
-    parse_tarball elastic, arg, files
+    unpack_and_parse_tarball elastic, arg, files
   else
     STDERR.puts "'#{arg}' is neither a directory nor a tarball"
   end
@@ -71,6 +98,13 @@ elastic = ELASTIC_DEFAULT
 
 if arg == "--elastic"
   elastic = ARGV.shift
+  arg = ARGV.shift
+end
+
+logstash = LOGSTASH_DEFAULT
+
+if arg == "--logstash"
+  logstash = ARGV.shift
   arg = ARGV.shift
 end
 

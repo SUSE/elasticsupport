@@ -24,11 +24,10 @@ module Elasticsupport
 
   class Filebeat
 
-    # initialize with hostname and timestamp of the supportconfig
-    def initialize elastic, hostname, timestamp
+    # initialize with name of the supportconfig
+    def initialize elastic, name
       @elastic = elastic
-      @hostname = hostname
-      @timestamp = timestamp
+      @name = name
       @dirname = File.dirname(__FILE__)
       @filebeatdir = File.expand_path(File.join(@dirname, "..", "..", "filebeat"))
     end
@@ -38,26 +37,34 @@ module Elasticsupport
         STDERR.puts "Filebeat: Not a directory - #{handle.inspect}"
         return
       end
-      debugdir = File.join(handle, 'spacewalk-debug')
-      unless File.directory?(debugdir)
-        STDERR.puts "spacewalk-debug isn't unpacked in #{handle.inspect}"
-        Dir.chdir(handle) do
-          system("tar xf spacewalk-debug.tar.bz2")
+      # check for running logstash
+      latest = Time.now + 10
+      loop do
+        begin
+          socket = TCPSocket.open('localhost', 5045)
+          socket.close
+          break
+        rescue Errno::ECONNREFUSED
+          if Time.now < latest
+            sleep 2
+            next
+          end
+          STDERR.puts "Waited 10 secs for logstash, please start logstash first"
+          exit 1
         end
       end
-      begin
-        socket = TCPSocket.open('localhost', 5045)
-        socket.close
-      rescue Errno::ECONNREFUSED
-        STDERR.puts "Please start logstash first"
-        exit 1
+      dir = File.join(handle, 'spacewalk-debug')
+      if File.directory?(dir)
+        out = create_yml dir
+        puts "Running filebeat on #{dir}"
+        # remove 'last sync point' file to force filebeat to transfer files completely
+        File.delete(".filebeat") rescue nil
+        job = spawn "filebeat", "-once", "-e", "-c", "#{out}"
+        puts "Run filebeat #{job}"
+        Process.wait(job)
+      else
+        puts "No spacewalk-debug - not Manager Server"
       end
-      out = create_yml debugdir
-      puts "Running filebeat"
-      # remove 'last sync point' file to force filebeat to transfer files completely
-      File.delete(".filebeat") rescue nil
-      system "filebeat -c #{out}"
-      puts "Stopped filebeat"
     end
 
     private
