@@ -33,12 +33,13 @@ module Elasticsupport
     end
 
     def run handle, files = []
+      puts "Spawning filebeat ..."
       unless File.directory?(handle)
         STDERR.puts "Filebeat: Not a directory - #{handle.inspect}"
         return
       end
       # check for running logstash
-      latest = Time.now + 10
+      latest = Time.now + 20
       loop do
         begin
           socket = TCPSocket.open('localhost', 5045)
@@ -49,7 +50,7 @@ module Elasticsupport
             sleep 2
             next
           end
-          STDERR.puts "Waited 10 secs for logstash, please start logstash first"
+          STDERR.puts "Waited 20 secs for logstash, please start logstash first"
           exit 1
         end
       end
@@ -65,6 +66,7 @@ module Elasticsupport
       else
         puts "No spacewalk-debug - not Manager Server"
       end
+      puts "Spawned filebeat"
     end
 
     private
