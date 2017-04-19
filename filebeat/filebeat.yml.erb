@@ -7,6 +7,7 @@ filebeat:
       encoding: utf-8
       input_type: log
       document_type: access_log
+      close_eof: true
 
     -
       paths:
@@ -14,6 +15,7 @@ filebeat:
       encoding: utf-8
       input_type: log
       document_type: error_log
+      close_eof: true
 
     -
       paths:
@@ -21,6 +23,7 @@ filebeat:
       encoding: utf-8
       input_type: log
       document_type: rhn_web_api
+      close_eof: true
 
     -
       paths:
@@ -28,6 +31,7 @@ filebeat:
       encoding: utf-8
       input_type: log
       document_type: osa-dispatcher
+      close_eof: true
 
 
 output:
