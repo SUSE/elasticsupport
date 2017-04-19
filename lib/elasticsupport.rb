@@ -64,7 +64,7 @@ private
       begin
         klass = ::Elasticsupport.const_get("Content::#{klassname}")
       rescue NameError
-        STDERR.puts "Parser missing for #{file}"
+        STDERR.puts "Parser missing for #{file}: Content::#{klassname}"
         return
       end
       #          puts "Found class #{klass}"
@@ -74,6 +74,7 @@ private
         klass.new self, @handle, file
       rescue Faraday::ConnectionFailed
         STDERR.puts "Elasticsearch DB not running"
+        exit 1
       end
     end
     # import list of file
@@ -101,28 +102,9 @@ private
         next unless entry =~ /^(.*)\.txt$/
         puts "*** #{entry} <#{@handle.inspect}>"
         if $1 == "supportconfig"
-          raise "Please remove 'supportconfig.txt from list of files to index"
+          raise "'supportconfig.txt' is implicit"
         end
-        # convert filename to class name
-        # foo.bar -> foo_bar
-        # foo-bar -> FooBar
-        klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
-        begin
-          begin
-            klass = ::Elasticsupport.const_get(klassname)
-          rescue NameError
-            STDERR.puts "Parser missing for #{entry}"
-            next
-          end
-          next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
-          # create instance (parses file, writes to DB)
-          klass.new self, @handle, entry
-#        rescue NameError => e
-#          STDERR.puts "#{e}\n\t#{entry} - not implemented"
-        rescue Faraday::ConnectionFailed
-          STDERR.puts "Elasticsearch DB not running"
-          exit 1
-        end
+        import_single $1, entry
       end
       unless @name
         raise "Couldn't determine name !"

@@ -29,10 +29,13 @@ module Elasticsupport
     end
 
     def run handle, files = []
+      puts "Spawning logstash in #{@logstashdir} ..."
       Dir.chdir @logstashdir do
+        # chdir for :out and :err
         @job = spawn "/usr/share/logstash/bin/logstash", "--path.settings", @logstashdir,
                  :out => [ "logstash.out", "w" ], :err => [ "logstash.err", "w" ]
       end
+      puts "Spawned logstash at #{@job}"
     end
 
     private

@@ -20,6 +20,9 @@ module Elasticsupport
     class BasicEnvironment < Elasticsupport::Supportconfig
       def _mappings
         {
+          date: {
+            date: { type: 'date', index: 'not_analyzed' }
+          },
           uname: {
             uname: { type: 'string', index: 'not_analyzed' }
           },
@@ -37,7 +40,8 @@ module Elasticsupport
       def command content
         case content[0]
         when /\/bin\/date/
-          # skip  
+          date = Time.parse content[1]
+          _write 'date', { date: date.to_i * 1000 }
         when /\/bin\/uname/
           # Linux usbsusemanager 3.0.101-0.47.71-default #1 SMP Thu Nov 12 12:22:22 UTC 2015 (b5b212e) x86_64 x86_64 x86_64 GNU/Linux
           # 0     1              2                       3  4   5   6   7  8        9   10   11        12     13     14     15
