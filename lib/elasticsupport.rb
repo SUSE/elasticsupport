@@ -100,7 +100,29 @@ private
         end
         next unless entry =~ /^(.*)\.txt$/
         puts "*** #{entry} <#{@handle.inspect}>"
-        import_single $1, entry
+        if $1 == "supportconfig"
+          raise "Please remove 'supportconfig.txt from list of files to index"
+        end
+        # convert filename to class name
+        # foo.bar -> foo_bar
+        # foo-bar -> FooBar
+        klassname = $1.tr(".", "_").split("-").map{|s| s.capitalize}.join("")
+        begin
+          begin
+            klass = ::Elasticsupport.const_get(klassname)
+          rescue NameError
+            STDERR.puts "Parser missing for #{entry}"
+            next
+          end
+          next unless klass.to_s =~ /Elasticsupport/ # ensure Module 'Elasticsupport'
+          # create instance (parses file, writes to DB)
+          klass.new self, @handle, entry
+#        rescue NameError => e
+#          STDERR.puts "#{e}\n\t#{entry} - not implemented"
+        rescue Faraday::ConnectionFailed
+          STDERR.puts "Elasticsearch DB not running"
+          exit 1
+        end
       end
       unless @name
         raise "Couldn't determine name !"
